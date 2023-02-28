@@ -4,6 +4,7 @@ import time
 import torch
 import torchvision
 import torchvision.transforms as transforms
+import torch.nn.functional as F
 
 
 _, term_width = os.popen('stty size', 'r').read().split()
@@ -111,3 +112,31 @@ def load_data():
     testloader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=2)
 
     return trainloader, testloader
+
+
+def load_dataset():
+    print('==> Preparing data..')
+    transform_train = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
+
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
+
+    trainset = torchvision.datasets.CIFAR10(root='../../data/processed', train=True, download=True, transform=transform_train)
+    testset = torchvision.datasets.CIFAR10(root='../../data/processed', train=False, download=True, transform=transform_test)
+
+    return trainset, testset
+
+
+
+def elbo(x, x_recon, mu, log_var):
+    recon_loss = F.binary_cross_entropy(x_recon, x, reduction='sum')
+    kld_loss = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+
+    return recon_loss - kld_loss
