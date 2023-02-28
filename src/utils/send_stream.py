@@ -1,17 +1,10 @@
 from kafka import KafkaProducer
 import json
-import numpy as np
-import torchvision.transforms as transforms
-import torchvision.datasets as datasets
-import torch
+
+from utilities import load_data
 
 # Load CIFAR10 data
-transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-])
-testset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
-testloader = torch.utils.data.DataLoader(testset, batch_size=1, shuffle=True)
+trainloader, testloader = load_data()
 
 # Define Kafka producer configuration
 kafka_broker = 'localhost:9092'
