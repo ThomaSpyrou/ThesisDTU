@@ -4,6 +4,7 @@ import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import matplotlib.pyplot as plt
 import torchvision.models as models
 
 sys.path.append('../')
@@ -188,13 +189,58 @@ def train_vit():
         test_acc.append(100. * correct / total)
         test_softmax.append(softmax_outputs)
         print('Test Loss: %.3f, Test Acc: %.3f' % (running_loss/len(testloader), 100.*correct/total))
+
+
+def loss_function(recon_x, x, mu, logvar):
+    BCE = F.binary_cross_entropy(recon_x.view(-1, 3*32*32), x.view(-1, 3*32*32), reduction='sum')
+    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    return BCE + KLD
+
+
+def train_vae(model, optimizer, dataloader, device, epoch, log_interval=100):
+    model.train()
+    train_loss = 0
+    for batch_idx, (data, _) in enumerate(dataloader):
+        data = data.to(device)
+        optimizer.zero_grad()
+        recon_batch, mu, logvar = model(data)
+        loss = loss_function(recon_batch, data, mu, logvar)
+        loss.backward()
+        train_loss += loss.item()
+        optimizer.step()
+        if batch_idx % log_interval == 0:
+            print(f'Train Epoch: {epoch} [{batch_idx * len(data)}/{len(dataloader.dataset)} '
+                  f'({100. * batch_idx / len(dataloader):.0f}%)]\tLoss: {loss.item() / len(data):.6f}')
+    print(f'====> Epoch: {epoch} Average loss: {train_loss / len(dataloader.dataset):.4f}')
     
+    
+def test_vae(model, dataloader, device):
+    model.eval()
+    test_loss = 0
+    with torch.no_grad():
+        for data, _ in dataloader:
+            data = data.to(device)
+            recon_batch, mu, logvar = model(data)
+            test_loss += loss_function(recon_batch, data, mu, logvar).item()
+
+    test_loss /= len(dataloader.dataset)
+    print(f'====> Test set loss: {test_loss:.4f}')
 
 if __name__ == '__main__':
     if args.net == "resnet":
         train_resnet()
     elif args.net == "vit":
         train_vit()
+    elif args.net == 'vae':
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        train_loader, test_loader = load_data()
+
+        vae = VAE().to(device)
+        optimizer = optim.Adam(vae.parameters(), lr=1e-3)
+
+        for epoch in range(EPOCHS):
+            train_vae(vae, optimizer, train_loader, device, epoch)
+            test_vae(vae, test_loader, device)
     else:
         train_resnet()
         train_vit()
