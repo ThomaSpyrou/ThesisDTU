@@ -53,7 +53,7 @@ n_corr = len(corruption)
 X_c = [X_corr[i * n_test:(i + 1) * n_test] for i in range(n_corr)]
 
 
-dataset = 'cifar100'
+dataset = 'cifar10'
 model = 'resnet32'
 clf = fetch_tf_model(dataset, model)
 acc = clf.evaluate(scale_by_instance(X_test), y_test, batch_size=128, verbose=0)[1]

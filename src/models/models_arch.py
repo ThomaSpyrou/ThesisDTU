@@ -17,6 +17,7 @@ class PreNorm(nn.Module):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
         self.fn = fn
+
     def forward(self, x, **kwargs):
         return self.fn(self.norm(x), **kwargs)
 
@@ -30,6 +31,7 @@ class FeedForward(nn.Module):
             nn.Linear(hidden_dim, dim),
             nn.Dropout(dropout)
         )
+
     def forward(self, x):
         return self.net(x)
 
@@ -60,6 +62,7 @@ class Attention(nn.Module):
 
         out = torch.matmul(attn, v)
         out = rearrange(out, 'b h n d -> b n (h d)')
+
         return self.to_out(out)
 
 class Transformer(nn.Module):
@@ -71,10 +74,12 @@ class Transformer(nn.Module):
                 PreNorm(dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout)),
                 PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout))
             ]))
+
     def forward(self, x):
         for attn, ff in self.layers:
             x = attn(x) + x
             x = ff(x) + x
+
         return x
 
 class ViT(nn.Module):
@@ -99,7 +104,6 @@ class ViT(nn.Module):
         self.dropout = nn.Dropout(emb_dropout)
 
         self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
-
         self.pool = pool
         self.to_latent = nn.Identity()
 
@@ -116,12 +120,10 @@ class ViT(nn.Module):
         x = torch.cat((cls_tokens, x), dim=1)
         x += self.pos_embedding[:, :(n + 1)]
         x = self.dropout(x)
-
         x = self.transformer(x)
-
         x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
-
         x = self.to_latent(x)
+
         return self.mlp_head(x)
 
 
@@ -147,11 +149,13 @@ class VAE(nn.Module):
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
         x = x.view(-1, 128 * 4 * 4)
+
         return self.fc1(x), self.fc2(x)
 
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
+
         return mu + eps * std
 
     def decode(self, z):
@@ -159,9 +163,11 @@ class VAE(nn.Module):
         x = x.view(-1, 128, 4, 4)
         x = F.relu(self.conv4(x))
         x = F.relu(self.conv5(x))
+
         return torch.sigmoid(self.conv6(x))
 
     def forward(self, x):
         mu, logvar = self.encode(x)
         z = self.reparameterize(mu, logvar)
+        
         return self.decode(z), mu, logvar
