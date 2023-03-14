@@ -2,6 +2,7 @@
 import argparse
 import sys
 import torch
+import pdb
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
@@ -192,9 +193,7 @@ def train_vit():
 
 
 def loss_function(recon_x, x, mu, logvar):
-    import pdb
-    pdb.set_trace()
-    BCE = F.binary_cross_entropy(recon_x.view(-1, 3*32*32), x.view(-1, 3*32*32), reduction='sum')
+    BCE = F.binary_cross_entropy(recon_x.view(-1, 3*32*32), x.view(-1, 3*32*32), reduction='mean')
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     print("bCE: ", BCE)
     print("KLD: ", KLD)
@@ -205,8 +204,8 @@ def loss_function(recon_x, x, mu, logvar):
 def train_vae(model, optimizer, dataloader, device, epoch, log_interval=100):
     model.train()
     train_loss = 0
-    for batch_idx, (data, _) in enumerate(dataloader):
-        data = data.to(device)
+    for batch_idx, (inputs, targets) in enumerate(dataloader):
+        data = inputs.to(device)
         optimizer.zero_grad()
         recon_batch, mu, logvar = model(data)
         loss = loss_function(recon_batch, data, mu, logvar)
@@ -232,6 +231,7 @@ def test_vae(model, dataloader, device):
     print(f'====> Test set loss: {test_loss:.4f}')
 
 if __name__ == '__main__':
+    # pdb.set_trace()
     if args.net == "resnet":
         train_resnet()
     elif args.net == "vit":

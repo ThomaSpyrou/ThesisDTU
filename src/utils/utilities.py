@@ -94,10 +94,10 @@ def format_time(seconds):
 def load_data():
     print('==> Preparing data..')
     transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        torchvision.transforms.ToTensor(),
+        # torchvision.transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        torchvision.transforms.RandomCrop(32, padding=4, padding_mode='reflect'),
+        torchvision.transforms.RandomHorizontalFlip(),
     ])
 
     transform_test = transforms.Compose([
@@ -134,9 +134,16 @@ def load_dataset():
     return trainset, testset
 
 
-
 def elbo(x, x_recon, mu, log_var):
     recon_loss = F.binary_cross_entropy(x_recon, x, reduction='sum')
     kld_loss = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
 
     return recon_loss - kld_loss
+
+
+def extract_img_features(img):
+    brightness = transforms.functional.rgb_to_grayscale(img).mean()
+    contrast = transforms.functional.adjust_contrast(img, 2).mean() - transforms.functional.adjust_contrast(img, 0.5).mean()
+    sharpness = transforms.functional.adjust_sharpness(img, 2).mean() - transforms.functional.adjust_sharpness(img, 0.5).mean()
+
+    return brightness, contrast, sharpness
