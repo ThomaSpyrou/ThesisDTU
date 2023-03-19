@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import torchvision.models as models
-
+import csv
 sys.path.append('../')
 from utils.utilities import *
 from models_arch import *
@@ -47,6 +47,10 @@ def train_resnet():
     train_loss, train_acc, train_softmax = [], [], []
     test_loss, test_acc, test_softmax  = [], [], []
 
+    accuracies = []
+    predicted_labels = []
+    softmax_values = []
+
     for epoch in range(EPOCHS):
         running_loss = 0.0
         correct = 0
@@ -68,12 +72,28 @@ def train_resnet():
             correct += predicted.eq(labels).sum().item()
             softmax_outputs.extend(torch.nn.functional.softmax(outputs, dim=1).tolist())
 
+            accuracy = 100 * correct / total
+            accuracies.append(accuracy)
+            predicted_labels.extend(predicted.tolist())
+            softmax_values.extend(torch.nn.functional.softmax(outputs, dim=1).tolist())
+
             progress_bar(batch_index, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (running_loss/(batch_index+1), 100.*correct/total, correct, total))
+            
+    file = open('accuracies.txt','w')
+    for item in accuracies:
+        file.write(str(item)+"\n")
+    file.close()
 
-        train_loss.append(running_loss / 100)
-        train_acc.append(100. * correct / total)
-        train_softmax.append(softmax_outputs)
+    file = open('predicted_labels.txt','w')
+    for item in predicted_labels:
+        file.write(str(item)+"\n")
+    file.close()
+
+    file = open('softmax_values.txt','w')
+    for item in softmax_values:
+        file.write(str(item)+"\n")
+    file.close()
 
     # Test the model
     with torch.no_grad():
