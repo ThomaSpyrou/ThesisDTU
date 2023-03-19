@@ -195,13 +195,11 @@ def train_vit():
 def loss_function(recon_x, x, mu, logvar):
     BCE = F.binary_cross_entropy(recon_x.view(-1, 3*32*32), x.view(-1, 3*32*32), reduction='mean')
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    print("bCE: ", BCE)
-    print("KLD: ", KLD)
 
     return BCE + KLD
 
 
-def train_vae(model, optimizer, dataloader, device, epoch, log_interval=100):
+def train_vae(model, optimizer, dataloader, train_losses, device, epoch, log_interval=100):
     model.train()
     train_loss = 0
     for batch_idx, (inputs, targets) in enumerate(dataloader):
@@ -212,13 +210,19 @@ def train_vae(model, optimizer, dataloader, device, epoch, log_interval=100):
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
-        if batch_idx % log_interval == 0:
-            print(f'Train Epoch: {epoch} [{batch_idx * len(data)}/{len(dataloader.dataset)} '
-                  f'({100. * batch_idx / len(dataloader):.0f}%)]\tLoss: {loss.item() / len(data):.6f}')
-    print(f'====> Epoch: {epoch} Average loss: {train_loss / len(dataloader.dataset):.4f}')
+       
+        # if batch_idx % log_interval == 0:
+        #     print(f'Train Epoch: {epoch} [{batch_idx * len(data)}/{len(dataloader.dataset)} '
+        #           f'({100. * batch_idx / len(dataloader):.0f}%)]\tLoss: {loss.item() / len(data):.6f}')
+    # print(f'====> Epoch: {epoch} Average loss: {train_loss / len(dataloader.dataset):.4f}')
+
+    avg_train_loss = train_loss / len(dataloader.dataset)
+    train_losses.append(avg_train_loss)
+
+    return train_losses
     
     
-def test_vae(model, dataloader, device):
+def test_vae(model, dataloader, device, test_losses):
     model.eval()
     test_loss = 0
     with torch.no_grad():
@@ -227,8 +231,10 @@ def test_vae(model, dataloader, device):
             recon_batch, mu, logvar = model(data)
             test_loss += loss_function(recon_batch, data, mu, logvar).item()
 
-    test_loss /= len(dataloader.dataset)
-    print(f'====> Test set loss: {test_loss:.4f}')
+    avg_test_loss = test_loss / len(dataloader.dataset)
+    test_losses.append(avg_test_loss)
+
+    return test_losses
 
 if __name__ == '__main__':
     # pdb.set_trace()
@@ -243,9 +249,20 @@ if __name__ == '__main__':
         vae = VAE().to(device)
         optimizer = optim.Adam(vae.parameters(), lr=1e-3)
 
+        train_losses = []
+        test_losses = []
+
         for epoch in range(EPOCHS):
-            train_vae(vae, optimizer, train_loader, device, epoch)
-            test_vae(vae, test_loader, device)
+            train_losses = train_vae(vae, optimizer, train_loader, train_losses, device, epoch)
+            test_losses = test_vae(vae, test_loader, device, test_losses)
+        
+        plt.plot(train_losses, label='Train Loss')
+        plt.plot(test_losses, label='Test Loss')
+        plt.legend()
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.savefig("./plots/train_vae_" + str(EPOCHS) + ".png")
+
     else:
         train_resnet()
         train_vit()
