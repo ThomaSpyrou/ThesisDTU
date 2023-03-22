@@ -1,5 +1,6 @@
 import pandas as pd
 import torch
+import numpy as np
 import ast
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -15,6 +16,7 @@ class MyDataset(Dataset):
     def __getitem__(self, idx):
         soft_list = torch.tensor((self.data.iloc[idx]['soft_list']))
         pred_soft = torch.tensor(self.data.iloc[idx]['pred_soft'])
+
         return soft_list, pred_soft
 
 data_path = 'final_1.csv'
@@ -27,6 +29,8 @@ class IamWatchingU(nn.Module):
         super(IamWatchingU, self).__init__()
         self.l1 = nn.Linear(10, 100)
         self.l2 = nn.Linear(100, 200)
+        # self.l3 = nn.Linear(200, 400)
+        # self.l4 = nn.Linear(400, 200)
         self.dropout = nn.Dropout(p=0.2)
         self.output = nn.Linear(200, 1)
         self.relu = nn.ReLU()
@@ -37,6 +41,10 @@ class IamWatchingU(nn.Module):
         x = self.relu(x)
         x = self.l2(x)
         x = self.relu(x)
+        # x = self.l3(x)
+        # x = self.relu(x)
+        # x = self.l4(x)
+        x = self.relu(x)
         x = self.dropout(x)
         x = self.output(x)
         x = self.sigmoid(x)
@@ -44,11 +52,11 @@ class IamWatchingU(nn.Module):
         return x
 
 model = IamWatchingU()
-optimizer = torch.optim.Adam(model.parameters())
+optimizer = torch.optim.Adam(model.parameters(), lr=0.000001)
 criterion = nn.MSELoss() 
 
 def train_model(model, dataloader, optimizer, criterion, num_epochs=10):
-    device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
     
     for epoch in range(num_epochs):
@@ -61,9 +69,7 @@ def train_model(model, dataloader, optimizer, criterion, num_epochs=10):
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
-            predicted_values = outputs.detach().numpy()
 
-            print((predicted_values))
             
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {total_loss / len(dataloader):.4f}")
         
