@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import torchvision.models as models
 import csv
 sys.path.append('../')
+from statistics import mean
 from utils.utilities import *
 from models_arch import *
 
@@ -50,6 +51,7 @@ def train_resnet():
     accuracies = []
     predicted_labels = []
     softmax_values = []
+    true_labels = []
 
     for epoch in range(EPOCHS):
         running_loss = 0.0
@@ -57,7 +59,7 @@ def train_resnet():
         total = 0
         softmax_outputs = []
 
-        for batch_index, data in enumerate(trainloader, 0):
+        for batch_index, data in enumerate(trainloader, 0): # take the index of the image on the loader
             inputs, labels = data
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
@@ -73,9 +75,13 @@ def train_resnet():
             softmax_outputs.extend(torch.nn.functional.softmax(outputs, dim=1).tolist())
 
             accuracy = 100 * correct / total
-            accuracies.append(accuracy)
-            predicted_labels.extend(predicted.tolist())
+            # accuracies.append(accuracy)
+            # predicted_labels.extend(predicted.tolist())
+            
             softmax_values.extend(torch.nn.functional.softmax(outputs, dim=1).tolist())
+            predicted_labels.extend(predicted.tolist())
+            true_labels.extend(labels.tolist())
+            accuracies.extend([accuracy])
 
             progress_bar(batch_index, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (running_loss/(batch_index+1), 100.*correct/total, correct, total))
@@ -92,6 +98,11 @@ def train_resnet():
 
     file = open('softmax_values.txt','w')
     for item in softmax_values:
+        file.write(str(item)+"\n")
+    file.close()
+
+    file = open('true_labels.txt','w')
+    for item in true_labels:
         file.write(str(item)+"\n")
     file.close()
 
