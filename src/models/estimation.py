@@ -36,7 +36,7 @@ class IamWatchingU(nn.Module):
         self.l5 = nn.Linear(800, 400)
         self.l6 = nn.Linear(400, 200)
         self.l7 = nn.Linear(200, 100)
-        self.dropout = nn.Dropout(p=0.2)
+        self.dropout = nn.Dropout(p=0.3)
         self.output = nn.Linear(100, 1)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
@@ -63,19 +63,19 @@ class IamWatchingU(nn.Module):
         return x
 
 model = IamWatchingU()
-optimizer = torch.optim.SGD(model.parameters(), lr=1e-5)
+optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
 criterion = nn.MSELoss()
 
-seed = 42
-torch.manual_seed(seed)
-random.seed(seed)
 
-
-def train_model(model, dataloader, optimizer, criterion, num_epochs=5):
+def train_model(model, dataloader, optimizer, criterion, num_epochs=50):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
     loss_to_plot = []
     val_loss_to_plot = []
+
+    seed = 42
+    torch.manual_seed(seed)
+    random.seed(seed)
     
     for epoch in range(num_epochs):
         total_loss = 0.0
@@ -98,7 +98,7 @@ def train_model(model, dataloader, optimizer, criterion, num_epochs=5):
     plt.ylabel('Loss')
     plt.title('Training and Validation Loss')
     plt.legend()
-    plt.savefig("estimantion.png")
+    plt.savefig("estimantion1.png")
 
     
 def evaluate_model(model, dataloader, criterion):
