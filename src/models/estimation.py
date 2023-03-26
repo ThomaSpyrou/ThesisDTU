@@ -2,6 +2,7 @@ import pandas as pd
 import torch
 import random
 import numpy as np
+import matplotlib.pyplot as plt
 import ast
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -65,14 +66,16 @@ model = IamWatchingU()
 optimizer = torch.optim.SGD(model.parameters(), lr=1e-5)
 criterion = nn.MSELoss()
 
-# seed = 42
-# torch.manual_seed(seed)
-# random.seed(seed)
+seed = 42
+torch.manual_seed(seed)
+random.seed(seed)
 
 
 def train_model(model, dataloader, optimizer, criterion, num_epochs=5):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
+    loss_to_plot = []
+    val_loss_to_plot = []
     
     for epoch in range(num_epochs):
         total_loss = 0.0
@@ -86,9 +89,18 @@ def train_model(model, dataloader, optimizer, criterion, num_epochs=5):
             total_loss += loss.item()
         
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {total_loss / len(dataloader):.4f}")
-        evaluate_model(model, dataloader, criterion)
+        loss_to_plot.append(total_loss/len(dataloader))
+        val_loss_to_plot.append(evaluate_model(model, dataloader, criterion))
 
+    plt.plot(loss_to_plot, label='Training loss')
+    plt.plot(val_loss_to_plot, label='Validation loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training and Validation Loss')
+    plt.legend()
+    plt.savefig("estimantion.png")
 
+    
 def evaluate_model(model, dataloader, criterion):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.eval()  # Set the model to evaluation mode
@@ -103,6 +115,8 @@ def evaluate_model(model, dataloader, criterion):
 
     avg_loss = total_loss / len(dataloader)
     print(f"Validation Loss: {avg_loss:.4f}")
+
+    return avg_loss
 
 
 train_model(model, dataloader, optimizer, criterion)
