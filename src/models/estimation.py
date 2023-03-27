@@ -21,9 +21,13 @@ class MyDataset(Dataset):
 
         return soft_list, pred_soft
 
-data_path = 'final_1.csv'
-dataset = MyDataset(data_path)
-dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
+data_path_train = 'final_1.csv'
+data_path_validation = 'final_2.csv'
+dataset_train = MyDataset(data_path_train)
+train_dataloader = DataLoader(dataset_train, batch_size=64, shuffle=True)
+
+dataset_validation = MyDataset(data_path_validation)
+valid_data_loader = DataLoader(dataset_validation, batch_size=64, shuffle=True)
 
 
 class IamWatchingU(nn.Module):
@@ -31,31 +35,30 @@ class IamWatchingU(nn.Module):
         super(IamWatchingU, self).__init__()
         self.l1 = nn.Linear(10, 100)
         self.l2 = nn.Linear(100, 200)
-        self.l3 = nn.Linear(200, 400)
-        self.l4 = nn.Linear(400, 800)
-        self.l5 = nn.Linear(800, 400)
-        self.l6 = nn.Linear(400, 200)
-        self.l7 = nn.Linear(200, 100)
-        self.dropout = nn.Dropout(p=0.3)
+        self.l3 = nn.Linear(200, 100)
+        # self.l4 = nn.Linear(1000, 2000)
+        # self.l5 = nn.Linear(2000, 1000)
+        # self.l6 = nn.Linear(1000, 500)
+        # self.l7 = nn.Linear(500, 100)
+        self.dropout = nn.Dropout(p=0.2)
         self.output = nn.Linear(100, 1)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         x = self.l1(x)
-        x = self.relu(x)
         x = self.l2(x)
         x = self.relu(x)
         x = self.l3(x)
         x = self.relu(x)
-        x = self.l4(x)
-        x = self.relu(x)
-        x = self.l5(x)
-        x = self.relu(x)
-        x = self.l6(x)
-        x = self.relu(x)
-        x = self.l7(x)
-        x = self.relu(x)
+        # x = self.l4(x)
+        # x = self.relu(x)
+        # x = self.l5(x)
+        # x = self.relu(x)
+        # x = self.l6(x)
+        # x = self.relu(x)
+        # x = self.l7(x)
+        # x = self.relu(x)
         x = self.dropout(x)
         x = self.output(x)
         x = self.sigmoid(x)
@@ -63,8 +66,9 @@ class IamWatchingU(nn.Module):
         return x
 
 model = IamWatchingU()
-optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 criterion = nn.MSELoss()
+threshold_acc = 0.5
 
 
 def train_model(model, dataloader, optimizer, criterion, num_epochs=50):
@@ -90,7 +94,7 @@ def train_model(model, dataloader, optimizer, criterion, num_epochs=50):
         
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {total_loss / len(dataloader):.4f}")
         loss_to_plot.append(total_loss/len(dataloader))
-        val_loss_to_plot.append(evaluate_model(model, dataloader, criterion))
+        val_loss_to_plot.append(evaluate_model(model, valid_data_loader, criterion))
 
     plt.plot(loss_to_plot, label='Training loss')
     plt.plot(val_loss_to_plot, label='Validation loss')
@@ -119,4 +123,4 @@ def evaluate_model(model, dataloader, criterion):
     return avg_loss
 
 
-train_model(model, dataloader, optimizer, criterion)
+train_model(model, train_dataloader, optimizer, criterion)
