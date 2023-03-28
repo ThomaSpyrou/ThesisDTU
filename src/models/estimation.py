@@ -10,24 +10,24 @@ from torch.utils.data import Dataset, DataLoader
 class MyDataset(Dataset):
     def __init__(self, data_path):
         self.data = pd.read_csv(data_path)
-        self.data['soft_list'] = self.data['soft_list'].apply(lambda x: ast.literal_eval(x))
+        self.data['soft'] = self.data['soft'].apply(lambda x: ast.literal_eval(x))
         
     def __len__(self):
         return len(self.data)
     
     def __getitem__(self, idx):
-        soft_list = torch.tensor((self.data.iloc[idx]['soft_list']))
-        pred_soft = torch.tensor(self.data.iloc[idx]['pred_soft'])
+        soft_list = torch.tensor((self.data.iloc[idx]['soft']))
+        true_soft = torch.tensor(self.data.iloc[idx]['true_soft'])
 
-        return soft_list, pred_soft
+        return soft_list, true_soft
 
-data_path_train = 'final_1.csv'
-data_path_validation = 'final_2.csv'
+data_path_train = 'final_train.csv'
+data_path_validation = 'final_val.csv'
 dataset_train = MyDataset(data_path_train)
-train_dataloader = DataLoader(dataset_train, batch_size=64, shuffle=True)
+train_dataloader = DataLoader(dataset_train, batch_size=256, shuffle=True) # 256, 512
 
 dataset_validation = MyDataset(data_path_validation)
-valid_data_loader = DataLoader(dataset_validation, batch_size=64, shuffle=True)
+valid_data_loader = DataLoader(dataset_validation, batch_size=256, shuffle=True) # 256, 512
 
 
 class IamWatchingU(nn.Module):
@@ -35,30 +35,30 @@ class IamWatchingU(nn.Module):
         super(IamWatchingU, self).__init__()
         self.l1 = nn.Linear(10, 100)
         self.l2 = nn.Linear(100, 200)
-        self.l3 = nn.Linear(200, 100)
-        # self.l4 = nn.Linear(1000, 2000)
-        # self.l5 = nn.Linear(2000, 1000)
-        # self.l6 = nn.Linear(1000, 500)
+        self.l3 = nn.Linear(200, 400)
+        self.l4 = nn.Linear(400, 800)
+        self.l5 = nn.Linear(800, 400)
+        self.l6 = nn.Linear(400, 200)
         # self.l7 = nn.Linear(500, 100)
         self.dropout = nn.Dropout(p=0.2)
-        self.output = nn.Linear(100, 1)
-        self.relu = nn.ReLU()
+        self.output = nn.Linear(200, 1)
+        self.activation = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         x = self.l1(x)
         x = self.l2(x)
-        x = self.relu(x)
+        x = self.activation(x)
         x = self.l3(x)
-        x = self.relu(x)
-        # x = self.l4(x)
-        # x = self.relu(x)
-        # x = self.l5(x)
-        # x = self.relu(x)
-        # x = self.l6(x)
-        # x = self.relu(x)
+        x = self.activation(x)
+        x = self.l4(x)
+        x = self.activation(x)
+        x = self.l5(x)
+        x = self.activation(x)
+        x = self.l6(x)
+        # x = self.activation(x)
         # x = self.l7(x)
-        # x = self.relu(x)
+        x = self.activation(x)
         x = self.dropout(x)
         x = self.output(x)
         x = self.sigmoid(x)
@@ -66,23 +66,27 @@ class IamWatchingU(nn.Module):
         return x
 
 model = IamWatchingU()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 criterion = nn.MSELoss()
 threshold_acc = 0.5
 
 
 def train_model(model, dataloader, optimizer, criterion, num_epochs=50):
+    print("Start training")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
     loss_to_plot = []
     val_loss_to_plot = []
+    acc_total = []
 
     seed = 42
     torch.manual_seed(seed)
     random.seed(seed)
     
     for epoch in range(num_epochs):
+        print("starting epoch: ", epoch)
         total_loss = 0.0
+        acc = 0.0
         for i, (inputs, targets) in enumerate(dataloader):
             inputs, targets = inputs.to(device), targets.to(device)
             optimizer.zero_grad()
@@ -91,8 +95,10 @@ def train_model(model, dataloader, optimizer, criterion, num_epochs=50):
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
+            # print(outputs)
         
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {total_loss / len(dataloader):.4f}")
+         
         loss_to_plot.append(total_loss/len(dataloader))
         val_loss_to_plot.append(evaluate_model(model, valid_data_loader, criterion))
 

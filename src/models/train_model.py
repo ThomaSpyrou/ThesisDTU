@@ -164,6 +164,10 @@ def train_vit():
     train_loss, train_acc, train_softmax = [], [], []
     test_loss, test_acc, test_softmax  = [], [], []
 
+    predicted_labels = []
+    softmax_values = []
+    true_labels = []
+
     # Train
     for epoch in range(EPOCHS):
         model.train()
@@ -190,6 +194,10 @@ def train_vit():
             correct += predicted.eq(targets).sum().item()
             softmax_outputs.extend(torch.nn.functional.softmax(outputs, dim=1).tolist())
 
+            softmax_values.extend(torch.nn.functional.softmax(outputs, dim=1).tolist())
+            predicted_labels.extend(predicted.tolist())
+            true_labels.extend(targets.tolist())
+
             progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                 % (running_loss/(batch_idx+1), 100.*correct/total, correct, total))
         
@@ -198,6 +206,21 @@ def train_vit():
         train_softmax.append(softmax_outputs)
 
         scheduler.step(epoch-1)
+
+    file = open('predicted_labels.txt','w')
+    for item in predicted_labels:
+        file.write(str(item)+"\n")
+    file.close()
+
+    file = open('softmax_values.txt','w')
+    for item in softmax_values:
+        file.write(str(item)+"\n")
+    file.close()
+
+    file = open('true_labels.txt','w')
+    for item in true_labels:
+        file.write(str(item)+"\n")
+    file.close()
 
     # Validation
     model.eval()
