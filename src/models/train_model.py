@@ -39,7 +39,7 @@ def train_resnet():
     # Load ResNet50  
     model = models.resnet50(pretrained=True)
     num_features = model.fc.in_features
-    model.fc = nn.Linear(num_features, 10)
+    model.fc = nn.Linear(num_features, 100)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=float(args.lr), momentum=0.9, weight_decay=5e-4)
 
@@ -86,22 +86,22 @@ def train_resnet():
             progress_bar(batch_index, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (running_loss/(batch_index+1), 100.*correct/total, correct, total))
             
-    file = open('accuracies.txt','w')
+    file = open('accuracies100.txt','w')
     for item in accuracies:
         file.write(str(item)+"\n")
     file.close()
 
-    file = open('predicted_labels.txt','w')
+    file = open('predicted_labels100.txt','w')
     for item in predicted_labels:
         file.write(str(item)+"\n")
     file.close()
 
-    file = open('softmax_values.txt','w')
+    file = open('softmax_values100.txt','w')
     for item in softmax_values:
         file.write(str(item)+"\n")
     file.close()
 
-    file = open('true_labels.txt','w')
+    file = open('true_labels100.txt','w')
     for item in true_labels:
         file.write(str(item)+"\n")
     file.close()
