@@ -5,7 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import ast
 import torch.nn as nn
+from torch.utils.data.sampler import SubsetRandomSampler
 from torch.utils.data import Dataset, DataLoader
+
 
 class MyDataset(Dataset):
     def __init__(self, data_path):
@@ -22,37 +24,61 @@ class MyDataset(Dataset):
 
         return soft_list, true_soft
 
-data_path_train = 'training_dataset.csv'
-data_path_validation = 'validation_dataset.csv'
+data_path_train = 'cifar100training.csv'
+# data_path_validation = 'cifar100validation.csv'
 dataset_train = MyDataset(data_path_train)
-train_dataloader = DataLoader(dataset_train, batch_size=128, shuffle=True) # 256, 512
+# train_dataloader = DataLoader(dataset_train, batch_size=64, shuffle=True) # 256, 512
 
-dataset_validation = MyDataset(data_path_validation)
-valid_data_loader = DataLoader(dataset_validation, batch_size=128, shuffle=True) # 256, 512
+# dataset_validation = MyDataset(data_path_validation)
+# valid_data_loader = DataLoader(dataset_validation, batch_size=32, shuffle=True) # 256, 512
+
+
+batch_size = 16
+validation_split = .2
+shuffle_dataset = True
+random_seed= 42
+
+# Creating data indices for training and validation splits:
+dataset_size = len(dataset_train)
+indices = list(range(dataset_size))
+split = int(np.floor(validation_split * dataset_size))
+if shuffle_dataset :
+    np.random.seed(random_seed)
+    np.random.shuffle(indices)
+train_indices, val_indices = indices[split:], indices[:split]
+
+# Creating PT data samplers and loaders:
+train_sampler = SubsetRandomSampler(train_indices)
+valid_sampler = SubsetRandomSampler(val_indices)
+
+train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, 
+                                           sampler=train_sampler)
+validation_loader = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size,
+                                                sampler=valid_sampler)
 
 
 class IamWatchingU(nn.Module):
     def __init__(self):
         super(IamWatchingU, self).__init__()
-        self.l1 = nn.Linear(10, 20)
-        self.l2 = nn.Linear(20, 40)
-        self.l3 = nn.Linear(40, 80)
+        self.l1 = nn.Linear(100, 200)
+        self.l2 = nn.Linear(200, 300)
+        # self.l3 = nn.Linear(400, 800)
         # self.l4 = nn.Linear(400, 800)
         # self.l5 = nn.Linear(800, 400)
         # self.l6 = nn.Linear(400, 200)
         # self.l7 = nn.Linear(200, 100)
         self.dropout = nn.Dropout(p=0.2)
-        self.output = nn.Linear(80, 1)
+        self.output = nn.Linear(300, 1)
         self.activation = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         x = self.l1(x)
-        # x = self.activation(x)
+        x = self.activation(x)
         x = self.l2(x)
         x = self.activation(x)
-        x = self.l3(x)
-        x = self.activation(x)
+        # x = self.l3(x)
+        # x = self.activation(x)
         # x = self.l4(x)
         # x = self.activation(x)
         # x = self.l5(x)
@@ -68,12 +94,12 @@ class IamWatchingU(nn.Module):
         return x
 
 model = IamWatchingU()
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-6)
-criterion = nn.MSELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
+criterion = nn.L1Loss()
 threshold_acc = 0.5
 
 
-def train_model(model, dataloader, optimizer, criterion, num_epochs=100):
+def train_model(model, dataloader, optimizer, criterion, num_epochs=50):
     print("Start training")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
@@ -107,7 +133,7 @@ def train_model(model, dataloader, optimizer, criterion, num_epochs=100):
          
         loss_to_plot.append(total_loss/len(dataloader))
         acc_total.append(correct / len(dataloader))
-        val_loss_to_plot.append(evaluate_model(model, valid_data_loader, criterion))
+        val_loss_to_plot.append(evaluate_model(model, validation_loader, criterion))
 
 
     plt.plot(loss_to_plot, label='Training loss')
@@ -116,7 +142,7 @@ def train_model(model, dataloader, optimizer, criterion, num_epochs=100):
     plt.ylabel('Loss')
     plt.title('Training and Validation Loss')
     plt.legend()
-    plt.savefig("estimantion17.png")
+    plt.savefig("estimantion_cifar100_1.png")
 
     
 def evaluate_model(model, dataloader, criterion):
@@ -128,7 +154,7 @@ def evaluate_model(model, dataloader, criterion):
     with torch.no_grad():
         for i, (inputs, targets) in enumerate(dataloader):
             inputs, targets = inputs.to(device), targets.to(device)
-            outputs = model(inputs.float())
+            outputs = model(inputs)
             loss = criterion(outputs.squeeze(), targets.float())
             total_loss += loss.item()
             out_tensor = outputs.squeeze()
@@ -143,4 +169,4 @@ def evaluate_model(model, dataloader, criterion):
     return avg_loss
 
 
-train_model(model, train_dataloader, optimizer, criterion)
+train_model(model, train_loader, optimizer, criterion)

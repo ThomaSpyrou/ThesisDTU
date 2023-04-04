@@ -52,9 +52,7 @@ def take_correct_value_true(row):
     return selected_value
 
 
-def split_dataset(source_path = "testing.csv", chunksize=2500000):
-    source_path = "testing.csv"
-
+def split_dataset(source_path, chunksize=1500000):
     for i,chunk in enumerate(pd.read_csv(source_path, chunksize=chunksize)):
         chunk.to_csv('chunk{}.csv'.format(i), index=False)
 
@@ -63,10 +61,13 @@ if __name__ == '__main__':
     # parsers
     parser = argparse.ArgumentParser(description='Create dataset')
     parser.add_argument('--method', default='create', type=str, help='either split big csv or create')
+    parser.add_argument('--chunksize', default=1500000, type=int, help='size of the chunk')
+    parser.add_argument('--source_path', default='final.csv', type=str, help='where to store and which folder to split')
     args = parser.parse_args()
 
-    clean_target_output()
-
-
-
-
+    if args.method == 'split':
+        print('Splitting')
+        split_dataset(source_path=args.source_path, chunksize=args.chunksize)
+    else:
+        print('preparing df')
+        clean_target_output()
