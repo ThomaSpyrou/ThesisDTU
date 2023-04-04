@@ -22,27 +22,27 @@ class MyDataset(Dataset):
 
         return soft_list, true_soft
 
-data_path_train = 'chunk0.csv'
-data_path_validation = 'chunk1.csv'
+data_path_train = 'training_dataset.csv'
+data_path_validation = 'validation_dataset.csv'
 dataset_train = MyDataset(data_path_train)
-train_dataloader = DataLoader(dataset_train, batch_size=512, shuffle=True) # 256, 512
+train_dataloader = DataLoader(dataset_train, batch_size=128, shuffle=True) # 256, 512
 
 dataset_validation = MyDataset(data_path_validation)
-valid_data_loader = DataLoader(dataset_validation, batch_size=512, shuffle=True) # 256, 512
+valid_data_loader = DataLoader(dataset_validation, batch_size=128, shuffle=True) # 256, 512
 
 
 class IamWatchingU(nn.Module):
     def __init__(self):
         super(IamWatchingU, self).__init__()
-        self.l1 = nn.Linear(10, 100)
-        self.l2 = nn.Linear(100, 100)
-        self.l3 = nn.Linear(100, 100)
+        self.l1 = nn.Linear(10, 20)
+        self.l2 = nn.Linear(20, 40)
+        self.l3 = nn.Linear(40, 80)
         # self.l4 = nn.Linear(400, 800)
         # self.l5 = nn.Linear(800, 400)
         # self.l6 = nn.Linear(400, 200)
         # self.l7 = nn.Linear(200, 100)
         self.dropout = nn.Dropout(p=0.2)
-        self.output = nn.Linear(100, 1)
+        self.output = nn.Linear(80, 1)
         self.activation = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
@@ -68,12 +68,12 @@ class IamWatchingU(nn.Module):
         return x
 
 model = IamWatchingU()
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-6)
 criterion = nn.MSELoss()
-threshold_acc = 0.4
+threshold_acc = 0.5
 
 
-def train_model(model, dataloader, optimizer, criterion, num_epochs=50):
+def train_model(model, dataloader, optimizer, criterion, num_epochs=100):
     print("Start training")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
@@ -103,7 +103,7 @@ def train_model(model, dataloader, optimizer, criterion, num_epochs=50):
             correct = mask.sum().item()
         
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {total_loss / len(dataloader):.4f}")
-        print(f"Epoch {epoch+1}/{num_epochs}, acc: {correct / len(dataloader):.4f}")
+        # print(f"Epoch {epoch+1}/{num_epochs}, acc: {correct / len(dataloader):.4f}")
          
         loss_to_plot.append(total_loss/len(dataloader))
         acc_total.append(correct / len(dataloader))
@@ -116,7 +116,7 @@ def train_model(model, dataloader, optimizer, criterion, num_epochs=50):
     plt.ylabel('Loss')
     plt.title('Training and Validation Loss')
     plt.legend()
-    plt.savefig("estimantion12.png")
+    plt.savefig("estimantion17.png")
 
     
 def evaluate_model(model, dataloader, criterion):
@@ -137,7 +137,7 @@ def evaluate_model(model, dataloader, criterion):
             correct = mask.sum().item()
 
     avg_loss = total_loss / len(dataloader)
-    print(f"acc: {correct / len(dataloader):.4f}")
+    # print(f"acc: {correct / len(dataloader):.4f}")
     print(f"Validation Loss: {avg_loss:.4f}")
 
     return avg_loss
