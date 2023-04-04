@@ -61,7 +61,7 @@ def split_dataset(source_path = "testing.csv", chunksize=2500000):
 
 if __name__ == '__main__':
     # parsers
-    parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
+    parser = argparse.ArgumentParser(description='Create dataset')
     parser.add_argument('--method', default='create', type=str, help='either split big csv or create')
     args = parser.parse_args()
 
