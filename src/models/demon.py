@@ -98,6 +98,10 @@ def main():
     # validation period 
     ref_batch, ref_score = validation_period(n_rounds, dataset, device, target_model, model)
 
+    # fit anomaly detector
+    ref_batch_x = np.array(ref_batch).reshape(-1, 1)
+    anomaly_detector = IsolationForest(random_state=42).fit(ref_batch_x)
+
     rest_subset_index = range(n_rounds, len(dataset))
     rest_dataset = data_utils.Subset(dataset, rest_subset_index)
 
@@ -120,9 +124,18 @@ def main():
                 # running ks test
                 curr_batch, _ = get_features(loader, model, device)
                 ks_static, p_value = ks_test_f_score(ref_batch, curr_batch)
+
                 print(ks_static, p_value)
 
                 # run anomaly detector
+                curr_batch_x = np.array(curr_batch).reshape(-1, 1)
+                anomaly_scores = anomaly_detector.score_samples(curr_batch_x)
+                print(anomaly_scores)
+
+                threshold = 0  #??
+                outlier = np.where(anomaly_scores < threshold)[0]
+
+                print(outlier)
 
     print('done')
 
