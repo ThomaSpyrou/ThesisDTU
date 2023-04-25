@@ -24,6 +24,7 @@ def get_features(img_batch, model, device):
     return: batch of extracted img features 
     """
     batch_features = []
+    batch_score = []
     model.to(device)
     model.eval()
 
@@ -31,9 +32,14 @@ def get_features(img_batch, model, device):
         for images, _ in img_batch:
             images = images.to(device)
             features = model(images)
+            prob = torch.softmax(features, dim=1)
 
+            score, _ = torch.max(prob, dim=1)
+
+            batch_score.append(score.cpu().numpy().flatten())
             batch_features.append(features.cpu().numpy().flatten())
-        
-        batch_features = np.concatenate(batch_features)
 
-    return batch_features
+        batch_features = np.concatenate(batch_features)
+        batch_score = np.concatenate(batch_score)
+
+    return batch_features, batch_score

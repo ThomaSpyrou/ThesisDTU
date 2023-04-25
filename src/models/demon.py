@@ -1,12 +1,15 @@
 # modules
 import sys
 import torch 
+import warnings
 import numpy as np
 import pandas as pd
 import torch.nn as nn
 import torch.utils.data as data_utils
 import torchvision.models as models
+from sklearn.ensemble import IsolationForest
 from torch.utils.data import ConcatDataset, DataLoader, SubsetRandomSampler
+warnings.filterwarnings("ignore")
 
 sys.path.append('../')
 from utils.utilities import *
@@ -57,15 +60,28 @@ def buffer():
     pass
 
 
+def validation_period(n_rounds, dataset, device, target_model, model):
+    subset_index = range(n_rounds)
+    dataset_subset = data_utils.Subset(dataset, subset_index)
+    data_loader_subset = DataLoader(dataset_subset, batch_size=32)
+
+    estimated_acc_ref = target_model_run(data_loader_subset, device, target_model, n_rounds)
+    ref_batch = get_features(data_loader_subset, model, device)
+
+    print("Estimated accuracy of the model: ", estimated_acc_ref)
+
+    return ref_batch
+
+
 def main():
     # always will start with ask period this will be the reference dataset
     ask_expert = False
     # ask for 500 imgs as a ref dataset
     ask_period = 500
-    valid_period = True
     n_rounds = 1000
 
     ref_batch = []
+    ref_score = []
     curr_batch = []
     model = models.resnet50(pretrained=True)
     num_ftrs = model.fc.in_features
@@ -79,21 +95,8 @@ def main():
 
     dataset, data_loader = get_data()
 
-    if valid_period:
-        # ask expert for labels when starting the system so this data will be used as ref
-        # this will run only once 
-        
-        subset_index = range(n_rounds)
-        dataset_subset = data_utils.Subset(dataset, subset_index)
-        data_loader_subset = DataLoader(dataset_subset, batch_size=32)
-
-        estimated_acc_ref = target_model_run(data_loader_subset, device, target_model, n_rounds)
-
-        ref_batch = get_features(data_loader_subset, model, device)
-
-        print("Estimated accuracy of the model: ", estimated_acc_ref)
-
-        valid_period = False
+    # validation period 
+    ref_batch, ref_score = validation_period(n_rounds, dataset, device, target_model, model)
 
     rest_subset_index = range(n_rounds, len(dataset))
     rest_dataset = data_utils.Subset(dataset, rest_subset_index)
@@ -115,12 +118,11 @@ def main():
         else:
             for image, _ in loader:
                 # running ks test
-                curr_batch = get_features(loader, model, device)
+                curr_batch, _ = get_features(loader, model, device)
                 ks_static, p_value = ks_test_f_score(ref_batch, curr_batch)
+                print(ks_static, p_value)
 
                 # run anomaly detector
-                
-                print(ks_static, p_value)
 
     print('done')
 
