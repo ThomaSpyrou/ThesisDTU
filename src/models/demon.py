@@ -30,10 +30,6 @@ def target_model_run(data_loader, device, model, n_rounds):
     model.to(device)
     model.eval()
 
-    _, data_loader = get_data()
-
-    acc_list = []
-
     with torch.no_grad():
         correct = 0
         total = 0 
@@ -43,10 +39,9 @@ def target_model_run(data_loader, device, model, n_rounds):
             outputs = model(images)
             _, predict = torch.max(outputs.data, 1)
 
-            # return only when ask the expert
             correct += (predict == labels).sum().item()
             total += labels.size(0)
-    
+        print(total, correct)
     avg_estimated_acc = 100 * correct / total
             
     return avg_estimated_acc
@@ -76,14 +71,13 @@ def validation_period(n_rounds, dataset, device, target_model, model):
 def main():
     # always will start with ask period this will be the reference dataset
     ask_expert = False
-    # ask for 500 imgs as a ref dataset
-    ask_period = 500
+    # size of chunks
     n_rounds = 1000
 
     ref_batch = []
     ref_score = []
     curr_batch = []
-    model = models.resnet50(pretrained=True)
+    model = models.resnet50(models.ResNet50_Weights.DEFAULT)
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, 10)
     # get the feature from the second last layer
@@ -92,9 +86,9 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # target model
-    target_model = models.resnet50(pretrained=True)
-    num_ftrs_target = target_model.fc.in_features
-    target_model.fc = nn.Linear(num_ftrs_target, 10)
+    target_model = models.resnet50(models.ResNet50_Weights.DEFAULT)
+    # num_ftrs_target = target_model.fc.in_features
+    # target_model.fc = nn.Linear(num_ftrs_target, 10)
 
     dataset, data_loader = get_data()
 
