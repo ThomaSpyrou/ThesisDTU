@@ -36,6 +36,7 @@ def target_model_run(data_loader, device, model, n_rounds):
 
     with torch.no_grad():
         correct = 0
+        total = 0 
         for images, labels in data_loader:
             # make predictions
             images, labels = images.to(device), labels.to(device)
@@ -44,11 +45,9 @@ def target_model_run(data_loader, device, model, n_rounds):
 
             # return only when ask the expert
             correct += (predict == labels).sum().item()
-            estimated_acc = correct / labels.size(0)
-
-            acc_list.append(estimated_acc)
+            total += labels.size(0)
     
-    avg_estimated_acc = sum(acc_list) / len(acc_list)
+    avg_estimated_acc = 100 * correct / total
             
     return avg_estimated_acc
 
@@ -104,8 +103,8 @@ def main():
                 validation_period(n_rounds, dataset, device, target_model, model)
 
     # fit anomaly detector
-    # ref_batch_x = np.array(ref_batch).reshape(-1, 1)
-    # anomaly_detector = IsolationForest(random_state=42).fit(ref_batch_x)
+    ref_batch_brightness = np.array(ref_batch_brightness).reshape(-1, 1)
+    anomaly_detector = IsolationForest(random_state=42).fit(ref_batch_brightness)
 
     rest_subset_index = range(n_rounds, len(dataset))
     rest_dataset = data_utils.Subset(dataset, rest_subset_index)
@@ -125,25 +124,25 @@ def main():
             # comapre with the latest but also with the ref
             pass
         else:
-            for image, _ in loader:
-                # running ks test
-                curr_batch, _ = get_features(loader, model, device)
-                ks_static, p_value = ks_test_f_score(ref_batch, curr_batch)
+            # running ks test
+            curr_batch, _ = get_features(loader, model, device)
+            batch_brightness, batch_contrast, batch_sharpness = extract_batch_img_features(loader)
 
-                print(ks_static, p_value)
+            ks_static, p_value = ks_test_f_score(ref_batch, curr_batch)
 
-                # run anomaly detector
-                # curr_batch_x = np.array(curr_batch).reshape(-1, 1)
-                # anomaly_scores = anomaly_detector.score_samples(curr_batch_x)
-                # print(anomaly_scores)
+            print(ks_static, p_value)
 
-                # threshold = -0.5  #??
-                # outlier = np.where(anomaly_scores < threshold)[0]
-                
-                # if len(outlier) == 0:
-                #     print(outlier)
-                # else:
-                #     print("skip")
+            # run anomaly detector
+            curr_curr_batch_x = np.array(batch_brightness).reshape(-1, 1)
+            anomaly_scores = anomaly_detector.score_samples(curr_curr_batch_x)
+
+            threshold = -0.5  #??
+            outlier = np.where(anomaly_scores < threshold)[0]
+            
+            if len(outlier) == 0:
+                print("outlier")
+            else:
+                print("skip")
 
     print('done')
 
