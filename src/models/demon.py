@@ -66,11 +66,12 @@ def validation_period(n_rounds, dataset, device, target_model, model):
     data_loader_subset = DataLoader(dataset_subset, batch_size=32)
 
     estimated_acc_ref = target_model_run(data_loader_subset, device, target_model, n_rounds)
-    ref_batch = get_features(data_loader_subset, model, device)
+    ref_batch, _ = get_features(data_loader_subset, model, device)
+    batch_brightness, batch_contrast, batch_sharpness = extract_batch_img_features(data_loader_subset)
 
     print("Estimated accuracy of the model: ", estimated_acc_ref)
 
-    return ref_batch
+    return ref_batch, batch_brightness, batch_contrast, batch_sharpness
 
 
 def main():
@@ -86,6 +87,9 @@ def main():
     model = models.resnet50(pretrained=True)
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, 10)
+    # get the feature from the second last layer
+    #model = torch.nn.Sequential(*list(model.children())[:-2]) 
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # target model
@@ -96,11 +100,12 @@ def main():
     dataset, data_loader = get_data()
 
     # validation period 
-    ref_batch, ref_score = validation_period(n_rounds, dataset, device, target_model, model)
+    ref_batch, ref_batch_brightness, ref_batch_contrast, ref_batch_sharpness = \
+                validation_period(n_rounds, dataset, device, target_model, model)
 
     # fit anomaly detector
-    ref_batch_x = np.array(ref_batch).reshape(-1, 1)
-    anomaly_detector = IsolationForest(random_state=42).fit(ref_batch_x)
+    # ref_batch_x = np.array(ref_batch).reshape(-1, 1)
+    # anomaly_detector = IsolationForest(random_state=42).fit(ref_batch_x)
 
     rest_subset_index = range(n_rounds, len(dataset))
     rest_dataset = data_utils.Subset(dataset, rest_subset_index)
@@ -128,14 +133,17 @@ def main():
                 print(ks_static, p_value)
 
                 # run anomaly detector
-                curr_batch_x = np.array(curr_batch).reshape(-1, 1)
-                anomaly_scores = anomaly_detector.score_samples(curr_batch_x)
-                print(anomaly_scores)
+                # curr_batch_x = np.array(curr_batch).reshape(-1, 1)
+                # anomaly_scores = anomaly_detector.score_samples(curr_batch_x)
+                # print(anomaly_scores)
 
-                threshold = 0  #??
-                outlier = np.where(anomaly_scores < threshold)[0]
-
-                print(outlier)
+                # threshold = -0.5  #??
+                # outlier = np.where(anomaly_scores < threshold)[0]
+                
+                # if len(outlier) == 0:
+                #     print(outlier)
+                # else:
+                #     print("skip")
 
     print('done')
 
