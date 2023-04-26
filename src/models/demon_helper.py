@@ -43,3 +43,25 @@ def get_features(img_batch, model, device):
         batch_score = np.concatenate(batch_score)
 
     return batch_features, batch_score
+
+
+def extract_batch_img_features(img_batch):
+    """
+    return: features/characteristics of imgs in batches brightness, sharpness, contrast
+            output lenght should be the same as n_rounds for each list
+    """
+    batch_brightness, batch_contrast, batch_sharpness = [], [], []
+
+    for images, _ in img_batch:
+        for img in images:
+            brightness, contrast, sharpness = extract_img_features(img)
+            
+            batch_brightness.append(brightness.cpu().numpy().flatten())
+            batch_contrast.append(contrast.cpu().numpy().flatten())
+            batch_sharpness.append(sharpness.cpu().numpy().flatten())
+
+    batch_brightness = np.concatenate(batch_brightness)
+    batch_contrast = np.concatenate(batch_contrast)
+    batch_sharpness = np.concatenate(batch_sharpness)
+
+    return batch_brightness, batch_contrast, batch_sharpness
