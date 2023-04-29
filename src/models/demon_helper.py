@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import torch.nn as nn
 from scipy.stats import ks_2samp
+from torch.utils.data import ConcatDataset, DataLoader, SubsetRandomSampler, Subset
 
 sys.path.append('../')
 from utils.utilities import *
@@ -65,3 +66,29 @@ def extract_batch_img_features(img_batch):
     batch_sharpness = np.concatenate(batch_sharpness)
 
     return batch_brightness, batch_contrast, batch_sharpness
+
+
+def get_data():
+    train_dataset, test_dataset = load_dataset()
+
+    # for now combine the dataset
+    combined_dataset = ConcatDataset([train_dataset, test_dataset])
+    combined_loader = DataLoader(combined_dataset, batch_size=32, shuffle=True)
+
+    return combined_dataset, combined_loader
+
+
+def buffer_data(n_rounds, index, dataset):
+    print("Batching: ", index)
+    start_index = index * n_rounds
+    end_index = (index + 1) * n_rounds
+
+    sampler = SubsetRandomSampler(range(start_index, end_index))
+    loader = DataLoader(dataset, batch_size=32, sampler=sampler)
+
+    return loader
+
+
+
+
+

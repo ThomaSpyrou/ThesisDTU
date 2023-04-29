@@ -8,22 +8,11 @@ import torch.nn as nn
 import torch.utils.data as data_utils
 import torchvision.models as models
 from sklearn.ensemble import IsolationForest
-from torch.utils.data import ConcatDataset, DataLoader, SubsetRandomSampler
 warnings.filterwarnings("ignore")
 
 sys.path.append('../')
 from utils.utilities import *
-from src.models.demon_helper import *
-
-
-def get_data():
-    train_dataset, test_dataset = load_dataset()
-
-    # for now combine the dataset
-    combined_dataset = ConcatDataset([train_dataset, test_dataset])
-    combined_loader = DataLoader(combined_dataset, batch_size=32, shuffle=True)
-
-    return combined_dataset, combined_loader
+from demon_helper import *
 
 
 def target_model_run(data_loader, device, model, n_rounds):
@@ -41,17 +30,10 @@ def target_model_run(data_loader, device, model, n_rounds):
 
             correct += (predict == labels).sum().item()
             total += labels.size(0)
-        print(total, correct)
+
     avg_estimated_acc = 100 * correct / total
             
     return avg_estimated_acc
-
-
-def buffer():
-    """
-    this function will batch the data into n_rounds 
-    """
-    pass
 
 
 def validation_period(n_rounds, dataset, device, target_model, model):
@@ -107,12 +89,7 @@ def main():
     num_batches = int(len(rest_dataset) / n_rounds)
 
     for index in range(num_batches):
-        start_index = index * n_rounds
-        end_index = (index + 1) * n_rounds
-        
-        # spliting data into chunks of 500 each time
-        sampler = SubsetRandomSampler(range(start_index, end_index))
-        loader = DataLoader(rest_dataset, batch_size=32, sampler=sampler)
+        loader = buffer_data(n_rounds, index, rest_dataset)
 
         if ask_expert:
             # comapre with the latest but also with the ref
