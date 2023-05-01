@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import torch.nn as nn
 from scipy.stats import ks_2samp
+from torchvision import models
 from torch.utils.data import ConcatDataset, DataLoader, SubsetRandomSampler, Subset
 
 sys.path.append('../')
@@ -33,12 +34,13 @@ def get_features(img_batch, model, device):
         for images, _ in img_batch:
             images = images.to(device)
             features = model(images)
-            prob = torch.softmax(features, dim=1)
+            embeddings = torch.flatten(features, start_dim=1)
 
+            prob = torch.softmax(features, dim=1)
             score, _ = torch.max(prob, dim=1)
 
             batch_score.append(score.cpu().numpy().flatten())
-            batch_features.append(features.cpu().numpy().flatten())
+            batch_features.append(embeddings.cpu().numpy().T.flatten())
 
         batch_features = np.concatenate(batch_features)
         batch_score = np.concatenate(batch_score)
@@ -89,6 +91,24 @@ def buffer_data(n_rounds, index, dataset):
     return loader
 
 
+class IntModel(nn.Module):
+    def __init__(self,output_layer = None):
+        super().__init__()
+        self.pretrained = models.resnet50(pretrained=True)
+        self.output_layer = output_layer
+        self.layers = list(self.pretrained._modules.keys())
+        self.layer_count = 0
+        for l in self.layers:
+            if l != self.output_layer:
+                self.layer_count += 1
+            else:
+                break
+        for i in range(1,len(self.layers)-self.layer_count):
+            self.dummy_var = self.pretrained._modules.pop(self.layers[-i])
+        
+        self.net = nn.Sequential(self.pretrained._modules)
+        self.pretrained = None
 
-
-
+    def forward(self,x):
+        x = self.net(x)
+        return x
