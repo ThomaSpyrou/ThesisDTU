@@ -40,7 +40,7 @@ def get_features(img_batch, model, device):
             score, _ = torch.max(prob, dim=1)
 
             batch_score.append(score.cpu().numpy().flatten())
-            batch_features.append(embeddings.cpu().numpy().T.flatten())
+            batch_features.append(embeddings.cpu().numpy().flatten())
 
         batch_features = np.concatenate(batch_features)
         batch_score = np.concatenate(batch_score)
@@ -58,7 +58,7 @@ def extract_batch_img_features(img_batch):
     for images, _ in img_batch:
         for img in images:
             brightness, contrast, sharpness = extract_img_features(img)
-            
+
             batch_brightness.append(brightness.cpu().numpy().flatten())
             batch_contrast.append(contrast.cpu().numpy().flatten())
             batch_sharpness.append(sharpness.cpu().numpy().flatten())
@@ -91,6 +91,19 @@ def buffer_data(n_rounds, index, dataset):
     return loader
 
 
+def detect_annomalies(data, anomaly_detector):
+    """
+    return the percentage of the anomalies found on the batch
+    """
+    anomaly_scores = anomaly_detector.predict(data)
+
+    score = (np.count_nonzero(anomaly_scores == -1) / len(anomaly_scores))
+
+    return score
+    
+
+
+# take whatever layer you want from the net
 class IntModel(nn.Module):
     def __init__(self,output_layer = None):
         super().__init__()

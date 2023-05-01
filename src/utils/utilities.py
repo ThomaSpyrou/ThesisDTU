@@ -142,6 +142,24 @@ def load_dataset():
     return trainset, testset
 
 
+def load_mnist():
+    batch_size = 64
+
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,))])
+
+    # load the training and test datasets
+    train_dataset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+    test_dataset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+
+    # create data loaders for the training and test datasets
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+    return train_dataset, test_dataset
+
+
 def elbo(x, x_recon, mu, log_var):
     recon_loss = F.binary_cross_entropy(x_recon, x, reduction='sum')
     kld_loss = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())

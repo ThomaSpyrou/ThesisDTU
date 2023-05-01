@@ -54,7 +54,7 @@ def main():
     # always will start with ask period this will be the reference dataset
     ask_expert = False
     # size of chunks
-    n_rounds = 500
+    n_rounds = 1000
 
     ref_batch = []
     ref_score = []
@@ -82,8 +82,16 @@ def main():
                 validation_period(n_rounds, dataset, device, target_model, model)
 
     # fit anomaly detector
-    ref_batch_xs = np.array(ref_batch_brightness).reshape(-1, 1)
-    anomaly_detector = IsolationForest(n_estimators=50, random_state=42, max_samples='auto', contamination=float(0.1),max_features=1.0).fit(ref_batch_xs)
+    df_feature = pd.DataFrame()
+    df_feature['brightness'] = ref_batch_brightness
+    df_feature['sharpness'] = ref_batch_sharpness
+    df_feature['contrast'] = ref_batch_contrast
+
+    features = ['brightness', 'sharpness', 'contrast']
+
+    # ref_batch_xs = np.array(ref_batch_brightness).reshape(-1, 1)
+    anomaly_detector = IsolationForest(n_estimators=50, random_state=42, max_samples='auto', \
+                                       contamination=float(0.1),max_features=1.0).fit(df_feature[features])
 
     rest_subset_index = range(n_rounds, len(dataset))
     rest_dataset = data_utils.Subset(dataset, rest_subset_index)
@@ -109,17 +117,16 @@ def main():
             print(ks_static, p_value)
 
             # run anomaly detector
-            curr_batch_x = np.array(batch_brightness).reshape(-1, 1)
-            anomaly_scores = anomaly_detector.predict(curr_batch_x)
-            
+            df_feature = pd.DataFrame()
+            df_feature['brightness'] = batch_brightness
+            df_feature['sharpness'] = batch_sharpness
+            df_feature['contrast'] = batch_contrast
 
-            # threshold = 0  
-            # outlier = np.where(anomaly_scores < threshold)[0]
-            
-            # if len(outlier) > 0:
-            #     print("outlier")
-            # else:
-            #     print(anomaly_scores)
+            features = ['brightness', 'sharpness', 'contrast']
+
+            anomaly_score = detect_annomalies(df_feature[features], anomaly_detector)
+            print(anomaly_score)
+
 
     print('done', counter_ask)
 
