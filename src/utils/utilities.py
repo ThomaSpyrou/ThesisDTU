@@ -133,6 +133,7 @@ def load_dataset():
 
     transform_test = transforms.Compose([
         transforms.ToTensor(),
+        transforms.Grayscale(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
 
@@ -140,6 +141,27 @@ def load_dataset():
     testset = torchvision.datasets.CIFAR10(root='../../data/processed', train=False, download=True, transform=transform_test)
 
     return trainset, testset
+
+
+def load_cifar10_specific_classes():
+    print('==> Preparing data.. airplane class')
+    classes = ['airplane']
+
+    transform = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
+
+    cifar10_full = torchvision.datasets.CIFAR10(root='../../data/processed', train=True,
+                                                download=True, transform=transform)
+
+    selected_class = 'dog'
+    class_index = cifar10_full.class_to_idx[selected_class]
+    class_data = [x for x, y in cifar10_full if y == class_index]
+
+    return class_data
 
 
 def load_mnist():

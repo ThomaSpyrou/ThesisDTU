@@ -5,8 +5,12 @@ import warnings
 import numpy as np
 import pandas as pd
 import torch.nn as nn
+import matplotlib
+import seaborn as sns
+import matplotlib.pyplot as plt
 import torch.utils.data as data_utils
 import torchvision.models as models
+from datetime import datetime
 from sklearn.ensemble import IsolationForest
 warnings.filterwarnings("ignore")
 
@@ -54,7 +58,7 @@ def main():
     # always will start with ask period this will be the reference dataset
     ask_expert = False
     # size of chunks
-    n_rounds = 1000
+    n_rounds = 500
 
     ref_batch = []
     ref_score = []
@@ -71,15 +75,17 @@ def main():
 
     # target model
     target_model = torch.load("chpt/resnet.pth")
-    #models.resnet50(models.ResNet50_Weights.DEFAULT)
+    # target_model = models.resnet18(pretrained=True)
     # num_ftrs_target = target_model.fc.in_features
     # target_model.fc = nn.Linear(num_ftrs_target, 10)
 
     dataset, data_loader = get_data()
-
     # validation period 
     ref_batch, ref_batch_brightness, ref_batch_contrast, ref_batch_sharpness = \
                 validation_period(n_rounds, dataset, device, target_model, model)
+    
+    # import pdb
+    # pdb.set_trace()
 
     # fit anomaly detector
     df_feature = pd.DataFrame()
@@ -106,15 +112,34 @@ def main():
             # comapre with the latest but also with the ref
             pass
         else:
+            time = datetime.now()
+
             # running ks test
             curr_batch, _ = get_features(loader, model, device)
             batch_brightness, batch_contrast, batch_sharpness = extract_batch_img_features(loader)
+            print("len: ", str(len(curr_batch)), str(len(ref_batch)))
 
             ks_static, p_value = ks_test_f_score(ref_batch, curr_batch)
             if p_value <= 0.05:
                 counter_ask += 1
 
             print(ks_static, p_value)
+            bins = np.logspace(np.log10(1e-6), np.log10(1), 100)
+            r_hist = (1e-6, 1)
+
+            # # Plot histogram on log scale
+            # plt.hist(ref_batch, bins=bins, range=r_hist, density = True, alpha=0.5, rwidth = 0.6, label='Reference')
+            # plt.hist(curr_batch, bins=bins, range=r_hist, alpha=0.5, rwidth = 0.6, density = True, label='Current')
+
+            # plt.xscale('log')
+            # plt.xlabel('Value')
+            # plt.ylabel('Frequency')
+            # plt.legend()
+            # plt.savefig('chpt/' + 'line' + str(p_value) + '.png')
+            # plt.close()
+
+            # import pdb
+            # pdb.set_trace()
 
             # run anomaly detector
             df_feature = pd.DataFrame()
@@ -122,10 +147,18 @@ def main():
             df_feature['sharpness'] = batch_sharpness
             df_feature['contrast'] = batch_contrast
 
+            plt.plot(np.sort(ref_batch_brightness), np.linspace(0, 1, len(ref_batch_brightness)), label='Ref')
+            plt.plot(np.sort(batch_brightness), np.linspace(0, 1, len(batch_brightness)), label='Curr')
+            plt.ylabel("P value")
+            plt.xlabel("Brightness")
+            plt.legend()
+            
             features = ['brightness', 'sharpness', 'contrast']
 
             anomaly_score = detect_annomalies(df_feature[features], anomaly_detector)
             print(anomaly_score)
+            # plt.savefig('chpt/' + 'line' + str(anomaly_score) + '.png')
+            # plt.close()
 
 
     print('done', counter_ask)
