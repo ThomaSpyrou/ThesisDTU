@@ -86,25 +86,25 @@ def train_resnet():
             progress_bar(batch_index, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (running_loss/(batch_index+1), 100.*correct/total, correct, total))
             
-    file = open('accuracies100.txt','w')
-    for item in accuracies:
-        file.write(str(item)+"\n")
-    file.close()
+    # file = open('accuracies100.txt','w')
+    # for item in accuracies:
+    #     file.write(str(item)+"\n")
+    # file.close()
 
-    file = open('predicted_labels100.txt','w')
-    for item in predicted_labels:
-        file.write(str(item)+"\n")
-    file.close()
+    # file = open('predicted_labels100.txt','w')
+    # for item in predicted_labels:
+    #     file.write(str(item)+"\n")
+    # file.close()
 
-    file = open('softmax_values100.txt','w')
-    for item in softmax_values:
-        file.write(str(item)+"\n")
-    file.close()
+    # file = open('softmax_values100.txt','w')
+    # for item in softmax_values:
+    #     file.write(str(item)+"\n")
+    # file.close()
 
-    file = open('true_labels100.txt','w')
-    for item in true_labels:
-        file.write(str(item)+"\n")
-    file.close()
+    # file = open('true_labels100.txt','w')
+    # for item in true_labels:
+    #     file.write(str(item)+"\n")
+    # file.close()
 
     # Test the model
     with torch.no_grad():
@@ -129,6 +129,8 @@ def train_resnet():
         test_acc.append(100. * correct / total)
         test_softmax.append(softmax_outputs)
         print('Test Loss: %.3f, Test Acc: %.3f' % (running_loss/len(testloader), 100.*correct/total))
+
+    torch.save(model, "chpt/resnet.pth")
 
 
 def train_vit():
