@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import argparse
+import random
 
 
 def clean_target_output():
@@ -15,7 +16,7 @@ def clean_target_output():
 
     softmax_values['soft_list'] = softmax_values.values.tolist()
     softmax_values['soft_list'] = softmax_values['soft_list'].apply(lambda x: [round(i, 2) for i in x])
-    softmax_values['soft_list'] = softmax_values['soft_list'].apply(lambda x: [0.5 if i > 1 or i < 0 else i for i in x])
+    softmax_values['soft_list'] = softmax_values['soft_list'].apply(lambda x: [round(random.random(), 2) if i > 1 or i < 0 else i for i in x])
     softmax_values = softmax_values.drop(cols, axis=1)
 
     tmp = pd.concat([true_labels, predictions], axis=1, ignore_index=True)
