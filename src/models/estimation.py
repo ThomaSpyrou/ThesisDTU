@@ -101,7 +101,7 @@ threshold_acc = 0.5
 
 def train_model(model, dataloader, optimizer, criterion, num_epochs=50):
     print("Start training")
-    device = 'cpu' #torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
     loss_to_plot = []
     val_loss_to_plot = []
@@ -119,8 +119,8 @@ def train_model(model, dataloader, optimizer, criterion, num_epochs=50):
             inputs, targets = inputs.to(device), targets.to(device)
             optimizer.zero_grad()
             outputs = model(inputs)
-            print(outputs)
-            print(targets)
+            # print("outputs", outputs)
+           # print(targets)
             loss = criterion(outputs.squeeze(), targets.float())
             loss.backward()
             optimizer.step()
@@ -129,7 +129,7 @@ def train_model(model, dataloader, optimizer, criterion, num_epochs=50):
             out_tensor = soft_max.squeeze()
 
             mask =  out_tensor >= threshold_acc
-            correct = mask.sum().item()
+            correct += mask.sum().item()
         
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {total_loss / len(dataloader):.4f}")
         print(f"Epoch {epoch+1}/{num_epochs}, acc: {correct / len(dataloader):.4f}")
