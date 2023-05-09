@@ -101,7 +101,7 @@ threshold_acc = 0.5
 
 def train_model(model, dataloader, optimizer, criterion, num_epochs=50):
     print("Start training")
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = 'cpu' #torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
     loss_to_plot = []
     val_loss_to_plot = []
@@ -119,6 +119,8 @@ def train_model(model, dataloader, optimizer, criterion, num_epochs=50):
             inputs, targets = inputs.to(device), targets.to(device)
             optimizer.zero_grad()
             outputs = model(inputs)
+            print(outputs)
+            print(targets)
             loss = criterion(outputs.squeeze(), targets.float())
             loss.backward()
             optimizer.step()
