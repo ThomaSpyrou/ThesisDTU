@@ -33,7 +33,7 @@ dataset_train = MyDataset(data_path_train)
 # valid_data_loader = DataLoader(dataset_validation, batch_size=32, shuffle=True) # 256, 512
 
 
-batch_size = 32
+batch_size = 64
 validation_split = .2
 shuffle_dataset = True
 random_seed= 42
@@ -53,16 +53,16 @@ valid_sampler = SubsetRandomSampler(val_indices)
 
 train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, 
                                            sampler=train_sampler)
-validation_loader = torch.utils.data.DataLoader(dataset_train, batch_size=16,
+validation_loader = torch.utils.data.DataLoader(dataset_train, batch_size=32,
                                                 sampler=valid_sampler)
 
 
 class IamWatchingU(nn.Module):
     def __init__(self):
         super(IamWatchingU, self).__init__()
-        self.l1 = nn.Linear(100,150)
-        self.l2 = nn.Linear(150, 150)
-        self.l3 = nn.Linear(150, 100)
+        self.l1 = nn.Linear(100,200)
+        self.l2 = nn.Linear(200, 300)
+        self.l3 = nn.Linear(300, 100)
         # self.l4 = nn.Linear(80, 40)
         # self.l5 = nn.Linear(800, 400)
         # self.l6 = nn.Linear(400, 200)
@@ -115,21 +115,24 @@ def train_model(model, dataloader, optimizer, criterion, num_epochs=50):
         print("starting epoch: ", epoch)
         total_loss = 0.0
         correct = 0
-        for i, (inputs, targets) in enumerate(dataloader):
+        for i, (inputs, targets) in enumerate(dataloader,0):
             inputs, targets = inputs.to(device), targets.to(device)
+            
+
             optimizer.zero_grad()
             outputs = model(inputs)
-            # print("outputs", outputs)
-           # print(targets)
             loss = criterion(outputs.squeeze(), targets.float())
             loss.backward()
             optimizer.step()
+
             total_loss += loss.item()
             soft_max = torch.nn.functional.softmax(outputs, dim=1)
-            out_tensor = soft_max.squeeze()
+            out_tensor = outputs.squeeze()
 
             mask =  out_tensor >= threshold_acc
+            
             correct += mask.sum().item()
+        print(correct)
         
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {total_loss / len(dataloader):.4f}")
         print(f"Epoch {epoch+1}/{num_epochs}, acc: {correct / len(dataloader):.4f}")
