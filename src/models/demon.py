@@ -127,6 +127,8 @@ def main():
             bins = np.logspace(np.log10(1e-6), np.log10(1), 100)
             r_hist = (1e-6, 1)
 
+            
+
             # # Plot histogram on log scale
             # plt.hist(ref_batch, bins=bins, range=r_hist, density = True, alpha=0.5, rwidth = 0.6, label='Reference')
             # plt.hist(curr_batch, bins=bins, range=r_hist, alpha=0.5, rwidth = 0.6, density = True, label='Current')
