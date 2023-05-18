@@ -208,21 +208,57 @@ def train_vit():
         train_softmax.append(softmax_outputs)
 
         scheduler.step(epoch-1)
+    
+    # Save train loss plot
+    plt.figure()
+    plt.plot(train_loss, label='Train Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.savefig('train_loss.png')
+    plt.close()
 
-    file = open('predicted_labels.txt','w')
-    for item in predicted_labels:
-        file.write(str(item)+"\n")
-    file.close()
+    # Save train accuracy plot
+    plt.figure()
+    plt.plot(train_acc, label='Train Acc')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy (%)')
+    plt.legend()
+    plt.savefig('train_accuracy.png')
+    plt.close()
 
-    file = open('softmax_values.txt','w')
-    for item in softmax_values:
-        file.write(str(item)+"\n")
-    file.close()
+    # Save test loss plot
+    plt.figure()
+    plt.plot(test_loss, label='Test Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.savefig('test_loss.png')
+    plt.close()
 
-    file = open('true_labels.txt','w')
-    for item in true_labels:
-        file.write(str(item)+"\n")
-    file.close()
+    # Save test accuracy plot
+    plt.figure()
+    plt.plot(test_acc, label='Test Acc')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy (%)')
+    plt.legend()
+    plt.savefig('test_accuracy.png')
+    plt.close()
+
+    # file = open('predicted_labels.txt','w')
+    # for item in predicted_labels:
+    #     file.write(str(item)+"\n")
+    # file.close()
+
+    # file = open('softmax_values.txt','w')
+    # for item in softmax_values:
+    #     file.write(str(item)+"\n")
+    # file.close()
+
+    # file = open('true_labels.txt','w')
+    # for item in true_labels:
+    #     file.write(str(item)+"\n")
+    # file.close()
 
     # Validation
     model.eval()
