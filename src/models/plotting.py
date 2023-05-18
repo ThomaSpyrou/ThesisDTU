@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
+import torchvision.models as models
 import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score
 
@@ -32,7 +33,7 @@ testset = datasets.CIFAR10(root='./data', train=False, download=True, transform=
 testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False)
 
 # Define ResNet50 model
-model = torch.hub.load('pytorch/vision', 'resnet50', pretrained=False)
+model = models.resnet50(pretrained=True)
 num_ftrs = model.fc.in_features
 model.fc = nn.Linear(num_ftrs, 10)
 
