@@ -97,6 +97,7 @@ for epoch in range(num_epochs):
     print('Epoch [{}/{}], Train Loss: {:.4f}, Train Acc: {:.2f}%, Test Loss: {:.4f}, Test Acc: {:.2f}%, F1 Score: {:.4f}'.format(epoch+1, num_epochs, train_losses[-1], train_accs[-1], test_losses[-1], test_accs[-1], f1_scores[-1]))
 
 # Visualize results
+# Visualize results
 fig, axs = plt.subplots(1, 3, figsize=(15, 5))
 axs[0].plot(train_losses, label='Train Loss')
 axs[0].plot(test_losses, label='Test Loss')
@@ -115,5 +116,26 @@ axs[2].set_xlabel('Epochs')
 axs[2].set_ylabel('F1 Score')
 axs[2].legend()
 
-plt.show()
+# Save each plot in a different file
+plt.savefig('train_loss.png')
+plt.close()
+
+fig, axs = plt.subplots(figsize=(10, 5))
+axs.plot(train_accs, label='Train Acc')
+axs.plot(test_accs, label='Test Acc')
+axs.set_xlabel('Epochs')
+axs.set_ylabel('Accuracy (%)')
+axs.legend()
+
+plt.savefig('accuracy.png')
+plt.close()
+
+fig, axs = plt.subplots(figsize=(10, 5))
+axs.plot(f1_scores, label='F1 Score')
+axs.set_xlabel('Epochs')
+axs.set_ylabel('F1 Score')
+axs.legend()
+
+plt.savefig('f1_score.png')
+plt.close()
 
