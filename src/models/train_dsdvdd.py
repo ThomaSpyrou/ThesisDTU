@@ -6,6 +6,8 @@ import numpy as np
 from sklearn import metrics
 import argparse
 import time
+import matplotlib.pyplot as plt
+
 
 sys.path.append('../')
 from utils.utilities import *
@@ -48,6 +50,8 @@ def train(epoch, model, center, trainloader, optimizer, scheduler, logger, devic
         print('  Training... Epoch: %4d | Iter: %4d/%4d | Mean Loss: %.4f '%(epoch, batch_idx+1, len(trainloader), train_loss/(batch_idx+1)), end = '\r')
     print('')
     logger.write('  Training... Epoch: %4d | Iter: %4d/%4d | Mean Loss: %.4f \n'%(epoch, batch_idx+1, len(trainloader), train_loss/(batch_idx+1)))
+    
+    return train_loss
 
 
 def test(model, center, testloader, device):
@@ -61,12 +65,14 @@ def test(model, center, testloader, device):
             inputs = inputs.to(device)
             outputs = model(inputs)
             dist = torch.sum((outputs - center) ** 2, dim=1)
+            loss = torch.mean(dist)
+            test_loss += loss.item()
             scores_list.append(dist.cpu().numpy())
             targets_list.append(targets.cpu().numpy())
             print('  Test... Iter: %4d/%4d '%(batch_idx+1, len(testloader), ), end = '\r')
     print('')
 
-    test_loss = test_loss/(batch_idx+1)
+    #test_loss = test_loss/(batch_idx+1)
     scores = np.concatenate(scores_list)
     targets = np.concatenate(targets_list)
     auroc = metrics.roc_auc_score(targets, scores)
@@ -78,6 +84,9 @@ def test(model, center, testloader, device):
 
 
 def main(args):
+    train_loss_list, test_loss_list, auroc_list, aupr_list = [], [], [], []
+
+
     logger, result_dir, dir_name = config_backup_get_log(args,__file__)
     device = get_device()
     set_seed(args.seed, device)
@@ -99,13 +108,35 @@ def main(args):
 
     start = time.time()
     for epoch in range(args.maxepoch):
-        train(epoch, model, center, trainloader, optimizer, scheduler, logger, device)
+        train_loss = train(epoch, model, center, trainloader, optimizer, scheduler, logger, device)
+        auroc, aupr, test_loss = test(model, center, testloader, device)
 
-    auroc, aupr, _ = test(model, center, testloader, device)
+        train_loss_list.append(train_loss)
+        test_loss_list.append(test_loss)
+        auroc_list.append(auroc)
+        aupr_list.append(aupr)
+
+
     print('Epoch: %4d AUROC: %.6f AUPR: %.6f'%(epoch, auroc, aupr))
     logger.write('Epoch: %4d AUROC: %.6f AUPR: %.6f \n'%(epoch, auroc, aupr))
     state = {'model': model.state_dict(), 'auroc': auroc, 'epoch': epoch}
     torch.save(state, chpt_name)
+
+    import pandas as pd
+
+    # Create a dictionary with the lists
+    data = {
+        'Train Loss': train_loss_list,
+        'Test Loss': test_loss_list,
+        'AUROC': auroc_list,
+        'AUPR': aupr_list
+    }
+
+    # Create a DataFrame from the dictionary
+    df = pd.DataFrame(data)
+
+    # Save the DataFrame as a CSV file
+    df.to_csv('metrics' + str(args.target) + '.csv', index=False)
 
     end = time.time()
     hours, rem = divmod(end-start, 3600)

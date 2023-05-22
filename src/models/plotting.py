@@ -33,7 +33,7 @@ testset = datasets.CIFAR10(root='./data', train=False, download=True, transform=
 testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False)
 
 # Define ResNet50 model
-model = models.resnet50(pretrained=True)
+model = models.resnet50(pretrained=False)
 num_ftrs = model.fc.in_features
 model.fc = nn.Linear(num_ftrs, 10)
 

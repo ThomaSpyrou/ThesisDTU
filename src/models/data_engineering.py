@@ -15,8 +15,8 @@ def clean_target_output():
         softmax_values[index] = softmax_values[index].str.extract('(\d+\.\d+)').astype(float)
 
     softmax_values['soft_list'] = softmax_values.values.tolist()
-    softmax_values['soft_list'] = softmax_values['soft_list'].apply(lambda x: [round(i, 2) for i in x])
-    softmax_values['soft_list'] = softmax_values['soft_list'].apply(lambda x: [round(random.random(), 2) if i > 1 or i < 0 else i for i in x])
+    softmax_values['soft_list'] = softmax_values['soft_list'].apply(lambda x: [round(i, 3) for i in x])
+    softmax_values['soft_list'] = softmax_values['soft_list'].apply(lambda x: [round(random.random(), 3) if i > 1 or i < 0 else i for i in x])
     softmax_values = softmax_values.drop(cols, axis=1)
 
     tmp = pd.concat([true_labels, predictions], axis=1, ignore_index=True)
