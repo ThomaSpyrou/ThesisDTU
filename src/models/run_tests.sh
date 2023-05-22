@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Define the range of indices for the loop
-start_index=1
-end_index=5
+start_index=0
+end_index=9
 
 # Loop through the indices
 for ((index=start_index; index<=end_index; index++))
