@@ -120,23 +120,22 @@ def main(args):
     print('Epoch: %4d AUROC: %.6f AUPR: %.6f'%(epoch, auroc, aupr))
     logger.write('Epoch: %4d AUROC: %.6f AUPR: %.6f \n'%(epoch, auroc, aupr))
     state = {'model': model.state_dict(), 'auroc': auroc, 'epoch': epoch}
-    torch.save(state, chpt_name)
+    torch.save(model, chpt_name)
 
     import pandas as pd
 
     # Create a dictionary with the lists
     data = {
-        'Train Loss': train_loss_list,
-        'Test Loss': test_loss_list,
-        'AUROC': auroc_list,
-        'AUPR': aupr_list
+    'seed': [args.seed],
+    'target': [args.target],
+        'AUROC': auroc
     }
 
     # Create a DataFrame from the dictionary
     df = pd.DataFrame(data)
 
     # Save the DataFrame as a CSV file
-    df.to_csv('metrics' + str(args.target) + '.csv', index=False)
+    df.to_csv('results' + '.csv', mode='a', header=False, index=False)
 
     end = time.time()
     hours, rem = divmod(end-start, 3600)
