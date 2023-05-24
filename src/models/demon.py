@@ -64,6 +64,7 @@ def main():
     ref_score = []
     curr_batch = []
     # get embeddings of img layer could be configured
+    # layers that can be configures  ['conv1', 'bn1', 'relu', 'maxpool', 'layer1', 'layer2', 'layer3', 'layer4', 'avgpool', 'fc']
     model = IntModel(output_layer = 'layer4')
 
     # num_ftrs = model.fc.in_features
@@ -120,6 +121,7 @@ def main():
             print("len: ", str(len(curr_batch)), str(len(ref_batch)))
 
             ks_static, p_value = ks_test_f_score(ref_batch, curr_batch)
+            load_svdd_detector(device, loader)
             if p_value <= 0.05:
                 counter_ask += 1
 

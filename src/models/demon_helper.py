@@ -99,6 +99,40 @@ def detect_annomalies(data, anomaly_detector):
     score = (np.count_nonzero(anomaly_scores == -1) / len(anomaly_scores))
 
     return score
+
+def init_center_c(model, trainloader, device):
+    eps = 0.1
+    c = torch.zeros(model.rep_dim, device=device)
+    model.eval()
+    n_samples = 0
+    with torch.no_grad():
+        for (inputs, _) in trainloader:
+            inputs = inputs.to(device)
+            outputs = model(inputs)
+            n_samples += outputs.shape[0]
+            c += torch.sum(outputs, dim=0)  
+    
+    c /= n_samples
+    c[(abs(c) < eps) & (c < 0)] = -eps
+    c[(abs(c) < eps) & (c > 0)] = eps
+
+    return c
+
+
+def load_svdd_detector(device, loader):
+    model = torch.load("/home/tspy/workspace/thesis/ThesisDTU/reports/figures/chpt copy/DSVDD_cifar10_target7_seed250.pth")
+    model.to(device)
+    center = init_center_c(model, loader, device)
+    model.eval()
+
+    with torch.no_grad():
+         for batch_idx, (inputs, targets) in enumerate(loader):
+            inputs = inputs.to(device)
+            outputs = model(inputs)
+            dist = torch.sum((outputs - center) ** 2, dim=1)
+            print(dist)
+            # the distance is the result of the anomalies 
+           
     
 
 # take whatever layer you want from the net
