@@ -11,6 +11,13 @@ from torch.utils.data import ConcatDataset, DataLoader, SubsetRandomSampler, Sub
 sys.path.append('../')
 from utils.utilities import *
 
+# TODO
+# refactor 
+# integrate to have the option to choose detector
+# args for the hyperparameters
+# define test
+# lezgo tommy
+
 
 def ks_test_f_score(init_features_batch, curr_features_batch):
     """
