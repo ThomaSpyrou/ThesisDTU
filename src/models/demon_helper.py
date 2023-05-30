@@ -9,6 +9,8 @@ from torchsummary import summary
 from torchvision import models
 from torch.utils.data import ConcatDataset, DataLoader, SubsetRandomSampler, Subset
 from sklearn import metrics
+from datetime import datetime
+import time
 sys.path.append('../')
 from utils.utilities import *
 
@@ -108,7 +110,7 @@ def get_data():
 
 
 def buffer_data(n_rounds, index, dataset):
-    print("Batching: ", index)
+  #  print("Batching: ", index)
     start_index = index * n_rounds
     end_index = (index + 1) * n_rounds
 
@@ -116,6 +118,14 @@ def buffer_data(n_rounds, index, dataset):
     loader = DataLoader(dataset, batch_size=32, sampler=sampler)
 
     return loader
+
+
+def calculate_average_time(time_list):
+    total = sum(time_list)
+    count = len(time_list)
+    average = total / count
+    return average
+
 
 
 def detect_annomalies(data, anomaly_detector):
