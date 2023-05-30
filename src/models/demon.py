@@ -65,28 +65,18 @@ def main():
     curr_batch = []
     # get embeddings of img layer could be configured
     # layers that can be configures  ['conv1', 'bn1', 'relu', 'maxpool', 'layer1', 'layer2', 'layer3', 'layer4', 'avgpool', 'fc']
-    model = IntModel(output_layer = 'layer4')
-
-    # num_ftrs = model.fc.in_features
-    # model.fc = nn.Linear(num_ftrs, 10)
-    # get the feature from the second last layer
-    #model = torch.nn.Sequential(*list(model.children())[:-2]) 
+    model = IntModel(output_layer = 'conv1')
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # target model
     target_model = torch.load("chpt/resnet.pth")
-    # target_model = models.resnet18(pretrained=True)
-    # num_ftrs_target = target_model.fc.in_features
-    # target_model.fc = nn.Linear(num_ftrs_target, 10)
+
 
     dataset, data_loader = get_data()
     # validation period 
     ref_batch, ref_batch_brightness, ref_batch_contrast, ref_batch_sharpness = \
                 validation_period(n_rounds, dataset, device, target_model, model)
-    
-    # import pdb
-    # pdb.set_trace()
 
     # fit anomaly detector
     df_feature = pd.DataFrame()
@@ -105,7 +95,12 @@ def main():
 
     # iterate the data
     num_batches = int(len(rest_dataset) / n_rounds)
-    counter_ask = 0
+    counter_ks_test= 0
+    counter_iforest = 0 
+    counter_dsvdd = 0
+    dsvdd_thrs = 0.2
+    if_thrs = 0.2
+
     for index in range(num_batches):
         loader = buffer_data(n_rounds, index, rest_dataset)
 
@@ -121,41 +116,15 @@ def main():
             print("len: ", str(len(curr_batch)), str(len(ref_batch)))
 
             ks_static, p_value = ks_test_f_score(ref_batch, curr_batch)
-            load_svdd_detector(device, loader)
-            if p_value <= 0.05:
-                counter_ask += 1
+            dsvdd_score  = load_svdd_detector(device, loader)
 
             print(ks_static, p_value)
-            bins = np.logspace(np.log10(1e-6), np.log10(1), 100)
-            r_hist = (1e-6, 1)
-
-            
-
-            # # Plot histogram on log scale
-            # plt.hist(ref_batch, bins=bins, range=r_hist, density = True, alpha=0.5, rwidth = 0.6, label='Reference')
-            # plt.hist(curr_batch, bins=bins, range=r_hist, alpha=0.5, rwidth = 0.6, density = True, label='Current')
-
-            # plt.xscale('log')
-            # plt.xlabel('Value')
-            # plt.ylabel('Frequency')
-            # plt.legend()
-            # plt.savefig('chpt/' + 'line' + str(p_value) + '.png')
-            # plt.close()
-
-            # import pdb
-            # pdb.set_trace()
 
             # run anomaly detector
             df_feature = pd.DataFrame()
             df_feature['brightness'] = batch_brightness
             df_feature['sharpness'] = batch_sharpness
             df_feature['contrast'] = batch_contrast
-
-            plt.plot(np.sort(ref_batch_brightness), np.linspace(0, 1, len(ref_batch_brightness)), label='Ref')
-            plt.plot(np.sort(batch_brightness), np.linspace(0, 1, len(batch_brightness)), label='Curr')
-            plt.ylabel("P value")
-            plt.xlabel("Brightness")
-            plt.legend()
             
             features = ['brightness', 'sharpness', 'contrast']
 
@@ -164,7 +133,13 @@ def main():
             # plt.savefig('chpt/' + 'line' + str(anomaly_score) + '.png')
             # plt.close()
 
+            if p_value <= 0.05:
+                counter_ks_test += 1
 
-    print('done', counter_ask)
+            if dsvdd_score >= dsvdd_thrs:
+                counter_dsvdd += 1
+            
+            if anomaly_score >= if_thrs:
+                counter_iforest += 1
 
 main()

@@ -5,9 +5,10 @@ import numpy as np
 import pandas as pd
 import torch.nn as nn
 from scipy.stats import ks_2samp
+from torchsummary import summary
 from torchvision import models
 from torch.utils.data import ConcatDataset, DataLoader, SubsetRandomSampler, Subset
-
+from sklearn import metrics
 sys.path.append('../')
 from utils.utilities import *
 
@@ -17,6 +18,25 @@ from utils.utilities import *
 # args for the hyperparameters
 # define test
 # lezgo tommy
+# methodology
+# general overview 
+# embedding vectors
+
+# system architecture
+
+# models
+# ks test
+# isolation
+# dsvdd
+
+
+# development
+# different tests
+# grafana on top 
+# metrics that used 
+# hyperparameters
+# target model
+# the importance of embeddings
 
 
 def ks_test_f_score(init_features_batch, curr_features_batch):
@@ -131,16 +151,25 @@ def load_svdd_detector(device, loader):
     model.to(device)
     center = init_center_c(model, loader, device)
     model.eval()
-
+    scores_list = []
+    counter = 0
+    thr = 0.5
+    
     with torch.no_grad():
          for batch_idx, (inputs, targets) in enumerate(loader):
             inputs = inputs.to(device)
             outputs = model(inputs)
             dist = torch.sum((outputs - center) ** 2, dim=1)
-            print(dist)
-            # the distance is the result of the anomalies 
-           
-    
+            counter += len(inputs)
+            scores_list.append(dist.cpu().numpy().flatten())
+   
+    scores_list = np.concatenate(scores_list)
+    anomalies = (scores_list > thr).sum()
+
+    score = anomalies/counter
+
+    return score
+
 
 # take whatever layer you want from the net
 class IntModel(nn.Module):
@@ -186,7 +215,7 @@ def load_speific_class():
     AFFTR = transforms.RandomAffine(degrees=(30, 70), translate=(0.1, 0.3), scale=(0.5, 0.75))
 
     # Transforms object for trainset with augmentation
-    transform_with_aug = transforms.Compose([TPIL, RC, RHF, TT, NRM, RANINV, GSC])
+    transform_with_aug = transforms.Compose([TPIL, RC, RHF, TT, NRM, RANINV, GSC, AFFTR])
     # Transforms object for testset with NO augmentation
     transform_no_aug = transforms.Compose([TT, NRM, RANINV, GSC])
 
