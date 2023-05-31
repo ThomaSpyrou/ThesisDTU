@@ -1,7 +1,7 @@
 ThesisDTU
 ==============================
 
-A short description of the project.
+![plot](./reports/figures/processChart.png)
 
 Project Organization
 ------------
