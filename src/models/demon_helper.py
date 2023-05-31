@@ -157,7 +157,7 @@ def init_center_c(model, trainloader, device):
 
 
 def load_svdd_detector(device, loader):
-    model = torch.load("/home/tspy/workspace/thesis/ThesisDTU/reports/figures/chpt copy/DSVDD_cifar10_target7_seed250.pth")
+    model = torch.load("/home/tspy/workspace/thesis/ThesisDTU/reports/figures/chpt copy/DSVDD_cifar10_target8_seed100.pth")
     model.to(device)
     center = init_center_c(model, loader, device)
     model.eval()
@@ -172,9 +172,11 @@ def load_svdd_detector(device, loader):
             dist = torch.sum((outputs - center) ** 2, dim=1)
             counter += len(inputs)
             scores_list.append(dist.cpu().numpy().flatten())
-   
+            
     scores_list = np.concatenate(scores_list)
+    print(scores_list)
     anomalies = (scores_list > thr).sum()
+    print(anomalies)
 
     score = anomalies/counter
 
@@ -224,10 +226,10 @@ def load_speific_class():
     RANINV = transforms.RandomInvert()
     AFFTR = transforms.RandomAffine(degrees=(30, 70), translate=(0.1, 0.3), scale=(0.5, 0.75))
 
-    # Transforms object for trainset with augmentation
+    # Transforms object for trainset with augmentation[TPIL, RC, RHF, TT, NRM, RANINV, GSC, AFFTR]
     transform_with_aug = transforms.Compose([TPIL, RC, RHF, TT, NRM, RANINV, GSC, AFFTR])
     # Transforms object for testset with NO augmentation
-    transform_no_aug = transforms.Compose([TT, NRM, RANINV, GSC])
+    transform_no_aug = transforms.Compose([TT, NRM, RANINV, GSC, RHF, RC])
 
     # Downloading/Louding CIFAR10 data
     # , transform = transform_with_aug)
@@ -308,13 +310,27 @@ def load_speific_class():
     cat_dog_trainset = \
         DatasetMaker(
             [get_class_i(x_train, y_train, classDict['plane']),
-            get_class_i(x_train, y_train, classDict['plane'])],
+            get_class_i(x_train, y_train, classDict['cat']),
+            get_class_i(x_train, y_train, classDict['deer']),
+            get_class_i(x_train, y_train, classDict['bird']),
+            get_class_i(x_test, y_test, classDict['ship']),
+             get_class_i(x_test, y_test, classDict['frog']),
+             get_class_i(x_test, y_test, classDict['horse']),
+             get_class_i(x_test, y_test, classDict['truck']),
+            get_class_i(x_test, y_test, classDict['dog'])],
             transform_with_aug
         )
     cat_dog_testset = \
         DatasetMaker(
-            [get_class_i(x_test, y_test, classDict['plane']),
-            get_class_i(x_test, y_test, classDict['plane'])],
+            [get_class_i(x_train, y_train, classDict['plane']),
+            get_class_i(x_train, y_train, classDict['cat']),
+            get_class_i(x_train, y_train, classDict['deer']),
+            get_class_i(x_train, y_train, classDict['bird']),
+            get_class_i(x_test, y_test, classDict['ship']),
+             get_class_i(x_test, y_test, classDict['frog']),
+             get_class_i(x_test, y_test, classDict['horse']),
+             get_class_i(x_test, y_test, classDict['truck']),
+            get_class_i(x_test, y_test, classDict['dog'])],
             transform_no_aug
         )
 

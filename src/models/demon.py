@@ -62,11 +62,10 @@ def main():
     n_rounds = 500
 
     ref_batch = []
-    ref_score = []
     curr_batch = []
     # get embeddings of img layer could be configured
     # layers that can be configures  ['conv1', 'bn1', 'relu', 'maxpool', 'layer1', 'layer2', 'layer3', 'layer4', 'avgpool', 'fc']
-    model = IntModel(output_layer = 'layer1')
+    model = IntModel(output_layer = 'layer4')
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -88,8 +87,8 @@ def main():
     features = ['brightness', 'sharpness', 'contrast']
 
     # ref_batch_xs = np.array(ref_batch_brightness).reshape(-1, 1)
-    #anomaly_detector = IsolationForest(n_estimators=50, random_state=42, max_samples='auto', \
-                                    #    contamination=float(0.1),max_features=1.0).fit(df_feature[features])
+    anomaly_detector = IsolationForest(n_estimators=50, random_state=42, max_samples='auto', \
+                                       contamination=float(0.1),max_features=1.0).fit(df_feature[features])
 
     rest_subset_index = range(n_rounds, len(dataset))
     rest_dataset = data_utils.Subset(dataset, rest_subset_index)
@@ -114,33 +113,34 @@ def main():
 
             # running ks test
             curr_batch, _ = get_features(loader, model, device)
-            #batch_brightness, batch_contrast, batch_sharpness = extract_batch_img_features(loader)
+            batch_brightness, batch_contrast, batch_sharpness = extract_batch_img_features(loader)
 
             ks_static, p_value = ks_test_f_score(ref_batch, curr_batch)
             time_after = time.time()
             diff_time = time_after - time_start
             time_list.append(diff_time)
-            # dsvdd_score  = load_svdd_detector(device, loader)
+            dsvdd_score  = load_svdd_detector(device, loader)
+            print(dsvdd_score)
 
             # run anomaly detector
             df_feature = pd.DataFrame()
-            # df_feature['brightness'] = batch_brightness
-            # df_feature['sharpness'] = batch_sharpness
-            # df_feature['contrast'] = batch_contrast
+            df_feature['brightness'] = batch_brightness
+            df_feature['sharpness'] = batch_sharpness
+            df_feature['contrast'] = batch_contrast
             
             features = ['brightness', 'sharpness', 'contrast']
 
-            #anomaly_score = detect_annomalies(df_feature[features], anomaly_detector)
+            anomaly_score = detect_annomalies(df_feature[features], anomaly_detector)
 
         if p_value <= 0.05:
             counter_ks_test += 1
 
-        # if dsvdd_score >= dsvdd_thrs:
-        #     counter_dsvdd += 1
+        if dsvdd_score >= dsvdd_thrs:
+            counter_dsvdd += 1
 
-        # if anomaly_score >= if_thrs:
-        #     counter_iforest += 1
-    #print(time_list)
+        if anomaly_score >= if_thrs:
+            counter_iforest += 1
+
     print("ks:", counter_ks_test, "\n", "dsvdd:", counter_dsvdd, "\n", "iforest:", counter_iforest)
     print("Time:", calculate_average_time(time_list))
 
