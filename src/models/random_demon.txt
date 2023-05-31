@@ -1,0 +1,156 @@
+import numpy as np
+from scipy.stats import t, norm
+import sys
+sys.path.append('../')
+from utils.utilities import *
+
+
+G = []   
+mu_hat = 0.5    
+batch_size = 10    
+risk_tol = 0.1    
+query_period = 0.5    
+drift_bound = 0.1    
+linear_prior = 0.5    
+N = 0   
+query = True    
+
+def g(S, S_prime):
+    # anomaly score
+    return np.abs(np.mean(S_prime) - np.mean(S))
+
+
+def compute_wt(wt_prev, Gt, delta_mu_t):
+    return wt_prev + Gt * delta_mu_t
+
+def std_err_forecast(S, wt, tau, batch_size):
+    S = np.array(S)
+    X = np.column_stack((np.ones(len(S)), np.arange(len(S))))
+    y = S - wt[0] - wt[1] * np.arange(len(S))
+    RSS = np.sum(y**2)
+    sigma_hat = np.sqrt(RSS / (len(S) - 2))
+    se = sigma_hat * np.sqrt(1 + (tau + (batch_size+1)/2) * np.sum(X**2))
+
+    return se
+
+def compute_plbl(S, wt, tau, batch_size, delta, rho, risk_tol):
+    # probability of label given the detection threshold
+    se_t = std_err_forecast(S, wt, tau, batch_size)
+    nu_t = delta * (tau + (batch_size+1)/2)
+    t_t = max(abs(mu_hat - rho) - risk_tol, 0) / delta
+    z_t = (risk_tol + t_t - batch_size * delta) / se_t
+    plbl = 1 - 2 * norm.cdf(z_t)
+
+    return max(min(plbl, 1 - risk_tol), risk_tol)
+
+def compute_pdet(N, S, wt, tau, batch_size, delta, rho, risk_tol):
+    # probability of detection given the label and the drift bound
+    se_t = std_err_forecast(S, wt, tau, batch_size)
+    nu_t = delta * (tau + (batch_size+1)/2)
+    t_t = max(abs(mu_hat - rho) - risk_tol, 0) / delta
+    z_t = (risk_tol + t_t - batch_size * delta) / se_t
+    p_t = 2 - 2 * t.cdf(z_t, N-2)
+    pdet = 1 - t.cdf((nu_t - t_t + risk_tol) / se_t, N-2)
+
+    return pdet
+
+def compute_pt(S, wt, tau, batch_size, delta, rho, risk_tol, linear_prior):
+    #  probability of querying given the label and the detection threshold
+    plbl = compute_plbl(S, wt, tau, batch_size, delta, rho, risk_tol)
+    pdet = compute_pdet(N, S, wt, tau, batch_size, delta)
+
+    return plbl, pdet
+
+
+if __name__ == '__main__':
+    
+    from scipy.stats import ks_2samp
+
+    # Define the transforms to apply to the datders for the two datasets
+    train_loader, test_loader = load_data() 
+
+    # Get a batch of images from each dataset
+    batch1, _ = next(iter(train_loader))
+    batch2, _ = next(iter(test_loader))
+
+    # Flatten the images to 1D arrays
+    batch1 = batch1.view(batch1.shape[0], -1)
+    batch2 = batch2.view(batch2.shape[0], -1)
+
+    # Convert the torch.Tensor objects to lists
+    batch1 = [item for sublist in batch1.tolist() for item in sublist]
+    batch2 = [item for sublist in batch2.tolist() for item in sublist]
+
+   
+    # Calculate the KS statistic and p-value
+    ks_statistic, p_value = ks_2samp(batch1, batch2)
+    # Print the results
+    print('KS statistic: {:.4f}'.format(ks_statistic))
+    print('p-value: {:.4f}'.format(p_value))
+
+
+###### demon
+
+def calculate_ks(batch_curr, batch_prev):
+    # Flatten the images to 1D arrays
+    batch_curr = batch_curr.view(batch_curr.shape[0], -1)
+    batch_prev = batch_prev.view(batch_prev.shape[0], -1)
+
+    statistic, pvalue = ks_2samp(batch_curr.numpy(), batch_prev.numpy())
+
+
+def get_data():
+    train_dataset, test_dataset = load_dataset()
+
+    # for now combine the dataset
+    combined_dataset = ConcatDataset([train_dataset, test_dataset])
+    combined_loader = DataLoader(combined_dataset, batch_size=64, shuffle=True)
+
+    return combined_loader
+
+
+
+def main():
+    ask = True
+    ask_period = 500
+    n_rounds = 500 # n_rounds and ask_period should be (for how many images should the expert be asked)
+    previous_batch = []
+    curr_batch = []
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    data_loader = get_data()
+
+    model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=True)
+    model.to(device)
+    model.eval()
+
+    with torch.no_grad():
+        total = 0
+        correct = 0
+        for images, labels in data_loader:
+            # make predictions
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            _, predict = torch.max(outputs.data, 1)
+
+            if ask is True:
+                # ask the expert
+                correct += (predict == labels).sum().item()
+                estimated_acc = correct / n_rounds
+                # print('Accuracy on the test set: {:.2%}'.format(correct / 500))
+
+                # for how many pics they will be answered
+                ask_period = ask_period - 1
+                if ask_period == 0: 
+                    ask = False
+                    ask_period = 500
+                    break
+            
+
+            # total += labels.size(0)
+            # correct += (predict == labels).sum().item()
+
+
+
+if __name__ == '__main__':
+    main()

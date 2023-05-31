@@ -2,12 +2,14 @@
 import argparse
 import sys
 import torch
+import pdb
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import torchvision.models as models
-
+import csv
 sys.path.append('../')
+from statistics import mean
 from utils.utilities import *
 from models_arch import *
 
@@ -37,7 +39,7 @@ def train_resnet():
     # Load ResNet50  
     model = models.resnet50(pretrained=True)
     num_features = model.fc.in_features
-    model.fc = nn.Linear(num_features, 10)
+    model.fc = nn.Linear(num_features, 100)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=float(args.lr), momentum=0.9, weight_decay=5e-4)
 
@@ -46,13 +48,18 @@ def train_resnet():
     train_loss, train_acc, train_softmax = [], [], []
     test_loss, test_acc, test_softmax  = [], [], []
 
+    accuracies = []
+    predicted_labels = []
+    softmax_values = []
+    true_labels = []
+
     for epoch in range(EPOCHS):
         running_loss = 0.0
         correct = 0
         total = 0
         softmax_outputs = []
 
-        for batch_index, data in enumerate(trainloader, 0):
+        for batch_index, data in enumerate(trainloader, 0): # take the index of the image on the loader
             inputs, labels = data
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
@@ -67,12 +74,37 @@ def train_resnet():
             correct += predicted.eq(labels).sum().item()
             softmax_outputs.extend(torch.nn.functional.softmax(outputs, dim=1).tolist())
 
+            accuracy = 100 * correct / total
+            # accuracies.append(accuracy)
+            # predicted_labels.extend(predicted.tolist())
+            
+            softmax_values.extend(torch.nn.functional.softmax(outputs, dim=1).tolist())
+            predicted_labels.extend(predicted.tolist())
+            true_labels.extend(labels.tolist())
+            accuracies.extend([accuracy])
+
             progress_bar(batch_index, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (running_loss/(batch_index+1), 100.*correct/total, correct, total))
+            
+    # file = open('accuracies100.txt','w')
+    # for item in accuracies:
+    #     file.write(str(item)+"\n")
+    # file.close()
 
-        train_loss.append(running_loss / 100)
-        train_acc.append(100. * correct / total)
-        train_softmax.append(softmax_outputs)
+    # file = open('predicted_labels100.txt','w')
+    # for item in predicted_labels:
+    #     file.write(str(item)+"\n")
+    # file.close()
+
+    # file = open('softmax_values100.txt','w')
+    # for item in softmax_values:
+    #     file.write(str(item)+"\n")
+    # file.close()
+
+    # file = open('true_labels100.txt','w')
+    # for item in true_labels:
+    #     file.write(str(item)+"\n")
+    # file.close()
 
     # Test the model
     with torch.no_grad():
@@ -97,6 +129,8 @@ def train_resnet():
         test_acc.append(100. * correct / total)
         test_softmax.append(softmax_outputs)
         print('Test Loss: %.3f, Test Acc: %.3f' % (running_loss/len(testloader), 100.*correct/total))
+
+    torch.save(model, "chpt/resnet.pth")
 
 
 def train_vit():
@@ -132,6 +166,10 @@ def train_vit():
     train_loss, train_acc, train_softmax = [], [], []
     test_loss, test_acc, test_softmax  = [], [], []
 
+    predicted_labels = []
+    softmax_values = []
+    true_labels = []
+
     # Train
     for epoch in range(EPOCHS):
         model.train()
@@ -158,6 +196,10 @@ def train_vit():
             correct += predicted.eq(targets).sum().item()
             softmax_outputs.extend(torch.nn.functional.softmax(outputs, dim=1).tolist())
 
+            softmax_values.extend(torch.nn.functional.softmax(outputs, dim=1).tolist())
+            predicted_labels.extend(predicted.tolist())
+            true_labels.extend(targets.tolist())
+
             progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                 % (running_loss/(batch_idx+1), 100.*correct/total, correct, total))
         
@@ -166,6 +208,57 @@ def train_vit():
         train_softmax.append(softmax_outputs)
 
         scheduler.step(epoch-1)
+    
+    # Save train loss plot
+    plt.figure()
+    plt.plot(train_loss, label='Train Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.savefig('train_loss.png')
+    plt.close()
+
+    # Save train accuracy plot
+    plt.figure()
+    plt.plot(train_acc, label='Train Acc')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy (%)')
+    plt.legend()
+    plt.savefig('train_accuracy.png')
+    plt.close()
+
+    # Save test loss plot
+    plt.figure()
+    plt.plot(test_loss, label='Test Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.savefig('test_loss.png')
+    plt.close()
+
+    # Save test accuracy plot
+    plt.figure()
+    plt.plot(test_acc, label='Test Acc')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy (%)')
+    plt.legend()
+    plt.savefig('test_accuracy.png')
+    plt.close()
+
+    # file = open('predicted_labels.txt','w')
+    # for item in predicted_labels:
+    #     file.write(str(item)+"\n")
+    # file.close()
+
+    # file = open('softmax_values.txt','w')
+    # for item in softmax_values:
+    #     file.write(str(item)+"\n")
+    # file.close()
+
+    # file = open('true_labels.txt','w')
+    # for item in true_labels:
+    #     file.write(str(item)+"\n")
+    # file.close()
 
     # Validation
     model.eval()
@@ -192,29 +285,36 @@ def train_vit():
 
 
 def loss_function(recon_x, x, mu, logvar):
-    BCE = F.binary_cross_entropy(recon_x.view(-1, 3*32*32), x.view(-1, 3*32*32), reduction='sum')
+    BCE = F.binary_cross_entropy(recon_x.view(-1, 3*32*32), x.view(-1, 3*32*32), reduction='mean')
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+
     return BCE + KLD
 
 
-def train_vae(model, optimizer, dataloader, device, epoch, log_interval=100):
+def train_vae(model, optimizer, dataloader, train_losses, device, epoch, log_interval=100):
     model.train()
     train_loss = 0
-    for batch_idx, (data, _) in enumerate(dataloader):
-        data = data.to(device)
+    for batch_idx, (inputs, targets) in enumerate(dataloader):
+        data = inputs.to(device)
         optimizer.zero_grad()
         recon_batch, mu, logvar = model(data)
         loss = loss_function(recon_batch, data, mu, logvar)
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
-        if batch_idx % log_interval == 0:
-            print(f'Train Epoch: {epoch} [{batch_idx * len(data)}/{len(dataloader.dataset)} '
-                  f'({100. * batch_idx / len(dataloader):.0f}%)]\tLoss: {loss.item() / len(data):.6f}')
-    print(f'====> Epoch: {epoch} Average loss: {train_loss / len(dataloader.dataset):.4f}')
+       
+        # if batch_idx % log_interval == 0:
+        #     print(f'Train Epoch: {epoch} [{batch_idx * len(data)}/{len(dataloader.dataset)} '
+        #           f'({100. * batch_idx / len(dataloader):.0f}%)]\tLoss: {loss.item() / len(data):.6f}')
+    # print(f'====> Epoch: {epoch} Average loss: {train_loss / len(dataloader.dataset):.4f}')
+
+    avg_train_loss = train_loss / len(dataloader.dataset)
+    train_losses.append(avg_train_loss)
+
+    return train_losses
     
     
-def test_vae(model, dataloader, device):
+def test_vae(model, dataloader, device, test_losses):
     model.eval()
     test_loss = 0
     with torch.no_grad():
@@ -223,10 +323,13 @@ def test_vae(model, dataloader, device):
             recon_batch, mu, logvar = model(data)
             test_loss += loss_function(recon_batch, data, mu, logvar).item()
 
-    test_loss /= len(dataloader.dataset)
-    print(f'====> Test set loss: {test_loss:.4f}')
+    avg_test_loss = test_loss / len(dataloader.dataset)
+    test_losses.append(avg_test_loss)
+
+    return test_losses
 
 if __name__ == '__main__':
+    # pdb.set_trace()
     if args.net == "resnet":
         train_resnet()
     elif args.net == "vit":
@@ -238,9 +341,20 @@ if __name__ == '__main__':
         vae = VAE().to(device)
         optimizer = optim.Adam(vae.parameters(), lr=1e-3)
 
+        train_losses = []
+        test_losses = []
+
         for epoch in range(EPOCHS):
-            train_vae(vae, optimizer, train_loader, device, epoch)
-            test_vae(vae, test_loader, device)
+            train_losses = train_vae(vae, optimizer, train_loader, train_losses, device, epoch)
+            test_losses = test_vae(vae, test_loader, device, test_losses)
+        
+        plt.plot(train_losses, label='Train Loss')
+        plt.plot(test_losses, label='Test Loss')
+        plt.legend()
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.savefig("./plots/train_vae_" + str(EPOCHS) + ".png")
+
     else:
         train_resnet()
         train_vit()
