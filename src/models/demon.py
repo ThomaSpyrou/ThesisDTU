@@ -65,7 +65,7 @@ def main():
     curr_batch = []
     # get embeddings of img layer could be configured
     # layers that can be configures  ['conv1', 'bn1', 'relu', 'maxpool', 'layer1', 'layer2', 'layer3', 'layer4', 'avgpool', 'fc']
-    model = IntModel(output_layer = 'layer4')
+    model = IntModel(output_layer = 'layer3')
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -98,10 +98,12 @@ def main():
     counter_ks_test= 0
     counter_iforest = 0 
     counter_dsvdd = 0
-    dsvdd_thrs = 0.2
-    if_thrs = 0.2
-    time_list = []
-
+    dsvdd_thrs = 0.05
+    if_thrs = 0.1
+    time_list_ks = []
+    time_list_if = []
+    time_list_ds = []
+    print(num_batches)
     for index in range(num_batches):
         loader = buffer_data(n_rounds, index, rest_dataset)
 
@@ -113,24 +115,32 @@ def main():
 
             # running ks test
             curr_batch, _ = get_features(loader, model, device)
-            batch_brightness, batch_contrast, batch_sharpness = extract_batch_img_features(loader)
-
+            
             ks_static, p_value = ks_test_f_score(ref_batch, curr_batch)
-            time_after = time.time()
-            diff_time = time_after - time_start
-            time_list.append(diff_time)
+            time_after_ks = time.time()
+            diff_time_ks = time_after_ks - time_start
+            
+            time_list_ks.append(diff_time_ks)
+            time_ds = time.time()
             dsvdd_score  = load_svdd_detector(device, loader)
-            print(dsvdd_score)
+            ime_after_ds = time.time()
+            diff_time_ds = ime_after_ds - time_ds
+            time_list_ds.append(diff_time_ds)
 
             # run anomaly detector
+            time_start_if = time.time()
+            batch_brightness, batch_contrast, batch_sharpness = extract_batch_img_features(loader)
             df_feature = pd.DataFrame()
             df_feature['brightness'] = batch_brightness
             df_feature['sharpness'] = batch_sharpness
             df_feature['contrast'] = batch_contrast
             
             features = ['brightness', 'sharpness', 'contrast']
-
+            
             anomaly_score = detect_annomalies(df_feature[features], anomaly_detector)
+            time_after = time.time()
+            diff_time = time_after - time_start_if
+            time_list_if.append(diff_time)
 
         if p_value <= 0.05:
             counter_ks_test += 1
@@ -141,8 +151,21 @@ def main():
         if anomaly_score >= if_thrs:
             counter_iforest += 1
 
-    print("ks:", counter_ks_test, "\n", "dsvdd:", counter_dsvdd, "\n", "iforest:", counter_iforest)
-    print("Time:", calculate_average_time(time_list))
+    data = {
+    'ks_counter': counter_ks_test,
+    'counter_dsvdd': counter_dsvdd,
+    'counter_iforest': counter_iforest,
+    'ks_time': [calculate_average_time(time_list_ks)],
+    'time_list_if': [calculate_average_time(time_list_if)],
+    'time_list_dsvdd': [calculate_average_time(time_list_ds)]
+    }
+
+    # Create a DataFrame from the dictionary
+    df = pd.DataFrame(data)
+
+    # Save the DataFrame as a CSV file
+    df.to_csv('results_demon' + '.csv', mode='a', header=False, index=False)
+    
 
 main()
 

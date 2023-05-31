@@ -157,12 +157,11 @@ def init_center_c(model, trainloader, device):
 
 
 def load_svdd_detector(device, loader):
-    model = torch.load("/home/tspy/workspace/thesis/ThesisDTU/reports/figures/chpt copy/DSVDD_cifar10_target8_seed100.pth")
+    model = torch.load("/home/tspy/workspace/thesis/ThesisDTU/reports/figures/chpt copy/DSVDD_cifar10_target0_seed100.pth")
     model.to(device)
     center = init_center_c(model, loader, device)
     model.eval()
     scores_list = []
-    counter = 0
     thr = 0.5
     
     with torch.no_grad():
@@ -170,15 +169,11 @@ def load_svdd_detector(device, loader):
             inputs = inputs.to(device)
             outputs = model(inputs)
             dist = torch.sum((outputs - center) ** 2, dim=1)
-            counter += len(inputs)
             scores_list.append(dist.cpu().numpy().flatten())
             
     scores_list = np.concatenate(scores_list)
-    print(scores_list)
     anomalies = (scores_list > thr).sum()
-    print(anomalies)
-
-    score = anomalies/counter
+    score = anomalies/len(scores_list)
 
     return score
 
