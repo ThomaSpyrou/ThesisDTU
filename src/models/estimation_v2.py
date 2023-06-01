@@ -85,4 +85,4 @@ def train_model(train_data, val_data, model, batch_size, epochs, lr, device):
         val_loss = evaluate(model, val_loader, criterion, device)
         history['train_loss'].append(train_loss)
         history['val_loss'].append(val_loss)
-        print('Epoch {}/{} | Train Loss: {:.6f} | Val Loss: {:.6f}'.
+        print('Epoch {}/{} | Train Loss: {:.6f} | Val Loss: {:.6f}')
