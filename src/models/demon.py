@@ -164,7 +164,7 @@ def main():
     df = pd.DataFrame(data)
 
     # Save the DataFrame as a CSV file
-    df.to_csv('results_demon' + '.csv', mode='a', header=False, index=False)
+    df.to_csv('results_demon3' + '.csv', mode='a', header=False, index=False)
     
 
 main()
