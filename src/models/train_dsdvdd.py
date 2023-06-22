@@ -8,7 +8,6 @@ import argparse
 import time
 import matplotlib.pyplot as plt
 
-
 sys.path.append('../')
 from utils.utilities import *
 
